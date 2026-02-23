@@ -1,0 +1,10 @@
+{
+    "MCU_Name": "STM32F103",
+    "RAM_KB": 20,
+    "Flash_KB": 64,
+    "Peripherals": {
+        "UART": 3,
+        "I2C": 2,
+        "SPI": 2
+    }
+}
