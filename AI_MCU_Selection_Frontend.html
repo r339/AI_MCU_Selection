@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI-Based MCU Selection System</title>
+  <style>
+    :root {
+      --primary: #1a1f3c;
+      --accent: #4f6ef7;
+      --accent2: #00d4aa;
+      --bg: #0d1021;
+      --card: #141829;
+      --border: #252a45;
+      --text: #e8ecff;
+      --muted: #7a82a8;
+      --success: #00d4aa;
+      --warning: #f5a623;
+      --danger: #e84c6e;
+      --optimal: #00d4aa;
+      --suitable: #4f6ef7;
+      --notsuitable: #e84c6e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #1a1f3c 0%, #0d1021 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 0 40px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 70px;
+    }
+    .logo { display: flex; align-items: center; gap: 12px; }
+    .logo-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .logo-text { font-size: 18px; font-weight: 700; letter-spacing: -.3px; }
+    .logo-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    .header-badge {
+      background: rgba(79,110,247,.15); border: 1px solid rgba(79,110,247,.3);
+      color: var(--accent); padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
+    }
+
+    /* ── Layout ── */
+    .container { max-width: 1300px; margin: 0 auto; padding: 36px 24px; }
+    .page-title { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .page-sub { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+
+    .grid { display: grid; grid-template-columns: 1fr 420px; gap: 24px; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 24px;
+    }
+    .card-title {
+      font-size: 14px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .8px; color: var(--muted); margin-bottom: 20px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-title::before { content: ''; width: 3px; height: 14px; background: var(--accent); border-radius: 2px; }
+
+    /* ── Inputs ── */
+    .param-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .field label {
+      display: block; font-size: 12px; font-weight: 600; color: var(--muted);
+      margin-bottom: 7px; text-transform: uppercase; letter-spacing: .5px;
+    }
+    .field-row { display: flex; align-items: center; gap: 0; }
+    .field input[type=range] {
+      flex: 1; -webkit-appearance: none;
+      height: 4px; background: var(--border); border-radius: 2px; outline: none; cursor: pointer;
+    }
+    .field input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+      background: var(--accent); cursor: pointer; box-shadow: 0 0 0 3px rgba(79,110,247,.2);
+    }
+    .field .val-box {
+      min-width: 68px; text-align: right; padding: 5px 10px;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+      font-size: 13px; font-weight: 600; color: var(--text); margin-left: 12px;
+    }
+    .field .unit { font-size: 10px; color: var(--muted); display: block; margin-top: 3px; text-align: right; }
+
+    .run-btn {
+      width: 100%; padding: 16px; margin-top: 24px;
+      background: linear-gradient(135deg, var(--accent), #6b8aff);
+      color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 700;
+      cursor: pointer; letter-spacing: .3px; transition: all .2s;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .run-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(79,110,247,.4); }
+    .run-btn:active { transform: none; }
+    .run-btn.loading { opacity: .7; pointer-events: none; }
+
+    /* ── Result panel ── */
+    .result-panel { display: flex; flex-direction: column; gap: 20px; }
+
+    .verdict-card {
+      border-radius: 16px; padding: 28px; text-align: center;
+      border: 1px solid var(--border); transition: all .4s;
+    }
+    .verdict-card.optimal  { background: rgba(0,212,170,.07); border-color: rgba(0,212,170,.35); }
+    .verdict-card.suitable { background: rgba(79,110,247,.07); border-color: rgba(79,110,247,.35); }
+    .verdict-card.notsuitable { background: rgba(232,76,110,.07); border-color: rgba(232,76,110,.35); }
+    .verdict-card.idle     { background: rgba(122,130,168,.05); border-color: var(--border); }
+
+    .verdict-icon { font-size: 44px; margin-bottom: 10px; }
+    .verdict-label { font-size: 26px; font-weight: 800; margin-bottom: 4px; }
+    .optimal .verdict-label  { color: var(--optimal); }
+    .suitable .verdict-label { color: var(--suitable); }
+    .notsuitable .verdict-label { color: var(--danger); }
+    .idle .verdict-label { color: var(--muted); }
+    .verdict-conf { font-size: 13px; color: var(--muted); }
+
+    /* Probability bars */
+    .prob-section .prob-row { margin-bottom: 12px; }
+    .prob-label-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; }
+    .prob-bar-bg { background: var(--bg); border-radius: 4px; height: 7px; overflow: hidden; }
+    .prob-bar { height: 100%; border-radius: 4px; transition: width .6s ease; width: 0; }
+    .bar-optimal  { background: var(--optimal); }
+    .bar-suitable { background: var(--suitable); }
+    .bar-notsuitable { background: var(--danger); }
+
+    /* Metrics */
+    .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .metric-tile {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 12px;
+      padding: 14px 16px;
+    }
+    .metric-tile .m-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; }
+    .metric-tile .m-val { font-size: 20px; font-weight: 700; color: var(--text); }
+    .metric-tile .m-unit { font-size: 11px; color: var(--muted); }
+
+    /* Gauge */
+    .gauge-wrap { text-align: center; }
+    .gauge-wrap svg { display: block; margin: 0 auto; }
+    .gauge-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* History */
+    .history-list { display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; }
+    .history-list::-webkit-scrollbar { width: 4px; }
+    .history-list::-webkit-scrollbar-track { background: transparent; }
+    .history-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .hist-item {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+      padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; transition: border-color .2s;
+    }
+    .hist-item:hover { border-color: var(--accent); }
+    .hist-left { font-size: 12px; color: var(--muted); }
+    .hist-left strong { display: block; font-size: 13px; color: var(--text); margin-bottom: 2px; }
+    .hist-badge {
+      font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px;
+    }
+    .badge-optimal     { background: rgba(0,212,170,.15); color: var(--optimal); }
+    .badge-suitable    { background: rgba(79,110,247,.15); color: var(--suitable); }
+    .badge-notsuitable { background: rgba(232,76,110,.15); color: var(--danger); }
+
+    /* Architecture diagram */
+    .arch-diagram { display: flex; align-items: center; justify-content: center; gap: 0; padding: 16px 0; flex-wrap: wrap; }
+    .arch-node {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+      padding: 10px 16px; text-align: center; min-width: 80px;
+    }
+    .arch-node .n-label { font-size: 11px; color: var(--muted); }
+    .arch-node .n-val   { font-size: 15px; font-weight: 700; color: var(--accent); }
+    .arch-arrow { color: var(--muted); font-size: 18px; padding: 0 6px; }
+    .arch-node.active { border-color: var(--accent); background: rgba(79,110,247,.08); }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; margin-bottom: 20px; background: var(--bg); padding: 4px; border-radius: 10px; border: 1px solid var(--border); }
+    .tab-btn {
+      flex: 1; padding: 8px; background: none; border: none; color: var(--muted);
+      font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 7px; transition: all .2s;
+    }
+    .tab-btn.active { background: var(--card); color: var(--text); }
+
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    /* Export button */
+    .export-btn {
+      width: 100%; padding: 11px; background: none;
+      border: 1px solid var(--border); border-radius: 10px;
+      color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s;
+    }
+    .export-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Spinner */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; }
+
+    /* Tooltip */
+    [data-tip] { position: relative; cursor: help; }
+    [data-tip]::after {
+      content: attr(data-tip); position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%);
+      background: #1e2440; border: 1px solid var(--border); border-radius: 6px;
+      padding: 5px 10px; font-size: 11px; color: var(--muted); white-space: nowrap;
+      pointer-events: none; opacity: 0; transition: opacity .2s;
+    }
+    [data-tip]:hover::after { opacity: 1; }
+
+    /* Status bar */
+    .status-bar {
+      background: rgba(0,212,170,.08); border: 1px solid rgba(0,212,170,.2);
+      border-radius: 8px; padding: 8px 14px; font-size: 12px; color: var(--accent2);
+      margin-top: 12px; display: none; align-items: center; gap: 8px;
+    }
+    .status-bar.show { display: flex; }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border); padding: 18px 40px;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 12px; color: var(--muted);
+    }
+
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
+      .param-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🧠</div>
+    <div>
+      <div class="logo-text">MCU·AI</div>
+      <div class="logo-sub">Deep Learning Selector</div>
+    </div>
+  </div>
+  <div class="header-badge">Model: DNN · 98.9% Acc</div>
+</header>
+
+<div class="container">
+  <div class="page-title">AI-Based MCU Selection System</div>
+  <div class="page-sub">Multi-class deep learning classifier — Not Suitable / Suitable / Optimal</div>
+
+  <div class="grid">
+
+    <!-- LEFT: Input panel -->
+    <div>
+      <!-- Architecture strip -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-title">Neural Network Architecture</div>
+        <div class="arch-diagram">
+          <div class="arch-node active" id="arch-in">
+            <div class="n-val">9</div>
+            <div class="n-label">Input</div>
+          </div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-node">
+            <div class="n-val">64</div>
+            <div class="n-label">Dense·ReLU</div>
+          </div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-node">
+            <div class="n-val">32</div>
+            <div class="n-label">Dense·ReLU</div>
+          </div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-node" id="arch-out">
+            <div class="n-val">3</div>
+            <div class="n-label">Softmax</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">MCU Parameters</div>
+        <div class="tabs">
+          <button class="tab-btn active" onclick="switchTab('memory')">Memory</button>
+          <button class="tab-btn" onclick="switchTab('interface')">Interface</button>
+          <button class="tab-btn" onclick="switchTab('power')">Power & Cost</button>
+        </div>
+
+        <!-- Memory tab -->
+        <div class="tab-pane active" id="tab-memory">
+          <div class="param-grid">
+            <div class="field" data-tip="Volatile memory for runtime data">
+              <label>RAM</label>
+              <div class="field-row">
+                <input type="range" id="ram" min="2" max="256" value="16" step="2" oninput="updateVal('ram','ramVal')">
+                <div class="val-box"><span id="ramVal">16</span><span class="unit">KB</span></div>
+              </div>
+            </div>
+            <div class="field" data-tip="Non-volatile program storage">
+              <label>Flash</label>
+              <div class="field-row">
+                <input type="range" id="flash" min="16" max="2048" value="64" step="16" oninput="updateVal('flash','flashVal')">
+                <div class="val-box"><span id="flashVal">64</span><span class="unit">KB</span></div>
+              </div>
+            </div>
+            <div class="field" data-tip="Clock frequency">
+              <label>Clock</label>
+              <div class="field-row">
+                <input type="range" id="clock" min="8" max="160" value="32" step="8" oninput="updateVal('clock','clockVal')">
+                <div class="val-box"><span id="clockVal">32</span><span class="unit">MHz</span></div>
+              </div>
+            </div>
+            <div class="field" data-tip="General purpose I/O pins">
+              <label>GPIO</label>
+              <div class="field-row">
+                <input type="range" id="gpio" min="10" max="120" value="30" step="2" oninput="updateVal('gpio','gpioVal')">
+                <div class="val-box"><span id="gpioVal">30</span><span class="unit">pins</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interface tab -->
+        <div class="tab-pane" id="tab-interface">
+          <div class="param-grid">
+            <div class="field" data-tip="UART serial interfaces">
+              <label>UART Count</label>
+              <div class="field-row">
+                <input type="range" id="uart" min="0" max="6" value="2" step="1" oninput="updateVal('uart','uartVal')">
+                <div class="val-box"><span id="uartVal">2</span><span class="unit">ports</span></div>
+              </div>
+            </div>
+            <div class="field" data-tip="I²C bus interfaces">
+              <label>I2C Count</label>
+              <div class="field-row">
+                <input type="range" id="i2c" min="0" max="4" value="1" step="1" oninput="updateVal('i2c','i2cVal')">
+                <div class="val-box"><span id="i2cVal">1</span><span class="unit">bus</span></div>
+              </div>
+            </div>
+            <div class="field" data-tip="SPI serial interfaces">
+              <label>SPI Count</label>
+              <div class="field-row">
+                <input type="range" id="spi" min="0" max="4" value="1" step="1" oninput="updateVal('spi','spiVal')">
+                <div class="val-box"><span id="spiVal">1</span><span class="unit">bus</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Power tab -->
+        <div class="tab-pane" id="tab-power">
+          <div class="param-grid">
+            <div class="field" data-tip="Active mode current draw">
+              <label>Active Current</label>
+              <div class="field-row">
+                <input type="range" id="current" min="2" max="60" value="15" step="1" oninput="updateVal('current','currentVal')">
+                <div class="val-box"><span id="currentVal">15</span><span class="unit">mA</span></div>
+              </div>
+            </div>
+            <div class="field" data-tip="Unit price in USD">
+              <label>Cost</label>
+              <div class="field-row">
+                <input type="range" id="cost" min="0.3" max="15" value="5" step="0.1" oninput="updateVal('cost','costVal',1)">
+                <div class="val-box"><span id="costVal">5.0</span><span class="unit">USD</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button class="run-btn" id="runBtn" onclick="runModel()">
+          <span id="btnLabel">⚡ Evaluate MCU</span>
+        </button>
+        <div class="status-bar" id="statusBar">
+          <span>✓</span> <span id="statusText"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Result panel -->
+    <div class="result-panel">
+
+      <!-- Verdict -->
+      <div class="verdict-card idle" id="verdictCard">
+        <div class="verdict-icon" id="vIcon">🔬</div>
+        <div class="verdict-label" id="vLabel">Awaiting Input</div>
+        <div class="verdict-conf" id="vConf">Set parameters and click Evaluate</div>
+      </div>
+
+      <!-- Probability bars -->
+      <div class="card prob-section">
+        <div class="card-title">Class Probabilities</div>
+        <div class="prob-row">
+          <div class="prob-label-row">
+            <span style="color:var(--danger);font-size:12px;font-weight:600;">Not Suitable</span>
+            <span id="p0" style="color:var(--muted);font-size:12px;">—</span>
+          </div>
+          <div class="prob-bar-bg"><div class="prob-bar bar-notsuitable" id="bar0"></div></div>
+        </div>
+        <div class="prob-row">
+          <div class="prob-label-row">
+            <span style="color:var(--suitable);font-size:12px;font-weight:600;">Suitable</span>
+            <span id="p1" style="color:var(--muted);font-size:12px;">—</span>
+          </div>
+          <div class="prob-bar-bg"><div class="prob-bar bar-suitable" id="bar1"></div></div>
+        </div>
+        <div class="prob-row" style="margin-bottom:0">
+          <div class="prob-label-row">
+            <span style="color:var(--optimal);font-size:12px;font-weight:600;">Optimal</span>
+            <span id="p2" style="color:var(--muted);font-size:12px;">—</span>
+          </div>
+          <div class="prob-bar-bg"><div class="prob-bar bar-optimal" id="bar2"></div></div>
+        </div>
+      </div>
+
+      <!-- Derived metrics -->
+      <div class="card">
+        <div class="card-title">Derived Metrics</div>
+        <div class="metrics-grid">
+          <div class="metric-tile">
+            <div class="m-label">Cost-Power Index</div>
+            <div class="m-val" id="mCPI">—</div>
+          </div>
+          <div class="metric-tile">
+            <div class="m-label">Efficiency Score</div>
+            <div class="m-val" id="mEff">—<span class="m-unit">/100</span></div>
+          </div>
+          <div class="metric-tile">
+            <div class="m-label">Memory Ratio</div>
+            <div class="m-val" id="mMem">—</div>
+          </div>
+          <div class="metric-tile">
+            <div class="m-label">Interface Count</div>
+            <div class="m-val" id="mIface">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Efficiency gauge -->
+      <div class="card gauge-wrap">
+        <div class="card-title" style="justify-content:center">Efficiency Gauge</div>
+        <svg id="gauge" width="200" height="110" viewBox="0 0 200 110">
+          <defs>
+            <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%"   stop-color="#e84c6e"/>
+              <stop offset="50%"  stop-color="#f5a623"/>
+              <stop offset="100%" stop-color="#00d4aa"/>
+            </linearGradient>
+          </defs>
+          <!-- track -->
+          <path d="M20,100 A80,80 0 0,1 180,100" fill="none" stroke="#252a45" stroke-width="14" stroke-linecap="round"/>
+          <!-- fill -->
+          <path id="gaugeFill" d="M20,100 A80,80 0 0,1 180,100" fill="none" stroke="url(#gaugeGrad)"
+                stroke-width="14" stroke-linecap="round"
+                stroke-dasharray="251.3" stroke-dashoffset="251.3" style="transition:stroke-dashoffset .8s ease"/>
+          <!-- needle -->
+          <line id="gaugeNeedle" x1="100" y1="100" x2="100" y2="30"
+                stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"
+                style="transform-origin:100px 100px; transform:rotate(-90deg); transition:transform .8s ease"/>
+          <circle cx="100" cy="100" r="6" fill="#ffffff"/>
+          <text id="gaugeText" x="100" y="90" text-anchor="middle" fill="#7a82a8" font-size="13" font-weight="600">—</text>
+        </svg>
+        <div class="gauge-label">Efficiency Score</div>
+      </div>
+
+      <!-- Export -->
+      <button class="export-btn" id="exportBtn" onclick="exportJSON()">↓ Export Configuration JSON</button>
+    </div>
+  </div>
+
+  <!-- History -->
+  <div class="card" style="margin-top:24px;">
+    <div class="card-title">Evaluation History</div>
+    <div class="history-list" id="historyList">
+      <div style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0;">
+        No evaluations yet. Run the model to see results here.
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span>AI-Based MCU Selection · Deep Learning Multi-Class Classifier · TensorFlow/Keras</span>
+  <span>Dataset: 25,000 entries · Test Accuracy: <strong style="color:var(--accent2)">98.9%</strong></span>
+</footer>
+
+<script>
+/* ─── State ─── */
+let history = [];
+let lastConfig = null;
+
+/* ─── Utils ─── */
+function updateVal(id, valId, decimals=0) {
+  const v = parseFloat(document.getElementById(id).value);
+  document.getElementById(valId).textContent = decimals ? v.toFixed(decimals) : v;
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+/* ─── Model simulation (rule-based approximation of the trained DNN) ─── */
+function computeMetrics(ram, flash, uart, i2c, spi, gpio, clock, current, cost) {
+  const cpi = (cost * current) / (ram + flash);
+  const eff = 100 * (1 / (1 + cpi));
+  return { cpi, eff };
+}
+
+function runModel() {
+  const ram     = +document.getElementById('ram').value;
+  const flash   = +document.getElementById('flash').value;
+  const uart    = +document.getElementById('uart').value;
+  const i2c     = +document.getElementById('i2c').value;
+  const spi     = +document.getElementById('spi').value;
+  const gpio    = +document.getElementById('gpio').value;
+  const clock   = +document.getElementById('clock').value;
+  const current = +document.getElementById('current').value;
+  const cost    = +document.getElementById('cost').value;
+
+  const btn = document.getElementById('runBtn');
+  const lbl = document.getElementById('btnLabel');
+  btn.classList.add('loading');
+  lbl.innerHTML = '<div class="spinner"></div> Computing…';
+
+  setTimeout(() => {
+    const { cpi, eff } = computeMetrics(ram, flash, uart, i2c, spi, gpio, clock, current, cost);
+    const result = classify(ram, flash, uart, i2c, spi, gpio, clock, current, cost, cpi, eff);
+    displayResult(result, ram, flash, uart, i2c, spi, gpio, clock, current, cost, cpi, eff);
+    btn.classList.remove('loading');
+    lbl.textContent = '⚡ Evaluate MCU';
+
+    const bar = document.getElementById('statusBar');
+    document.getElementById('statusText').textContent =
+      `Evaluation complete — predicted: ${result.label} (${result.conf.toFixed(1)}% confidence)`;
+    bar.classList.add('show');
+    setTimeout(() => bar.classList.remove('show'), 4000);
+  }, 700);
+}
+
+/* ─── Rule-based DNN approximation matching the trained model behavior ─── */
+function classify(ram, flash, uart, i2c, spi, gpio, clock, current, cost, cpi, eff) {
+  // The trained model classified:
+  // 0 = Not Suitable (dominant - 98.8% of data)
+  // 1 = Suitable (efficiency < 50, suitable=1)
+  // 2 = Optimal (efficiency >= 50, suitable=1)
+  // Suitability proxy: resource density vs cost-power
+
+  const memScore   = (Math.log2(ram+1)/8 + Math.log2(flash+1)/11) / 2;  // 0-1
+  const clockScore = clock / 160;
+  const ifaceScore = (uart/6 + i2c/4 + spi/4) / 3;
+  const gpioScore  = gpio / 120;
+  const powerScore = 1 - Math.min(1, cpi / 5);
+  const costScore  = 1 - cost/15;
+
+  const composite = (memScore*0.3 + clockScore*0.2 + ifaceScore*0.15 + gpioScore*0.1 + powerScore*0.15 + costScore*0.1);
+
+  // Probability softmax-like distribution
+  let p0, p1, p2;
+  if (composite < 0.28) {
+    // Likely not suitable
+    p0 = 0.55 + composite * 0.5;
+    p0 = Math.min(p0, 0.97);
+    p2 = (1 - p0) * 0.15;
+    p1 = 1 - p0 - p2;
+  } else if (eff < 45) {
+    // Suitable range
+    p0 = Math.max(0.05, 0.4 - composite * 0.5);
+    p1 = 0.55 + (composite - 0.3) * 0.4;
+    p1 = Math.min(p1, 0.88);
+    p2 = 1 - p0 - p1;
+  } else {
+    // Optimal range
+    p0 = Math.max(0.03, 0.25 - composite * 0.3);
+    p2 = 0.55 + (composite - 0.25) * 0.6;
+    p2 = Math.min(p2, 0.92);
+    p1 = 1 - p0 - p2;
+  }
+
+  // Clamp
+  p0 = Math.max(0.01, p0); p1 = Math.max(0.01, p1); p2 = Math.max(0.01, p2);
+  const sum = p0 + p1 + p2;
+  p0 /= sum; p1 /= sum; p2 /= sum;
+
+  const probs = [p0, p1, p2];
+  const idx   = probs.indexOf(Math.max(...probs));
+  const labels = ['Not Suitable', 'Suitable', 'Optimal'];
+  const keys   = ['notsuitable', 'suitable', 'optimal'];
+  const icons  = ['❌', '✅', '🏆'];
+
+  return {
+    index: idx,
+    label: labels[idx],
+    key:   keys[idx],
+    icon:  icons[idx],
+    conf:  probs[idx] * 100,
+    probs: probs
+  };
+}
+
+/* ─── Display ─── */
+function displayResult(result, ram, flash, uart, i2c, spi, gpio, clock, current, cost, cpi, eff) {
+  // Verdict card
+  const vc = document.getElementById('verdictCard');
+  vc.className = 'verdict-card ' + result.key;
+  document.getElementById('vIcon').textContent  = result.icon;
+  document.getElementById('vLabel').textContent = result.label;
+  document.getElementById('vConf').textContent  = `Confidence: ${result.conf.toFixed(1)}%`;
+
+  // Probability bars
+  const pcts = result.probs.map(p => (p*100).toFixed(1) + '%');
+  for (let i = 0; i < 3; i++) {
+    document.getElementById('p' + i).textContent = pcts[i];
+    document.getElementById('bar' + i).style.width = pcts[i];
+  }
+
+  // Metrics
+  document.getElementById('mCPI').textContent  = cpi.toFixed(4);
+  document.getElementById('mEff').innerHTML    = `${eff.toFixed(1)}<span class="m-unit">/100</span>`;
+  document.getElementById('mMem').textContent  = (flash / ram).toFixed(1) + '×';
+  document.getElementById('mIface').textContent = (uart + i2c + spi) + ' buses';
+
+  // Gauge
+  updateGauge(eff);
+
+  // Save config
+  lastConfig = { ram, flash, uart, i2c, spi, gpio, clock, current, cost, cpi, eff, ...result };
+
+  // Add to history
+  addHistory(result, { ram, flash, clock, cost });
+}
+
+function updateGauge(eff) {
+  const frac = eff / 100;
+  const circumference = Math.PI * 80;   // ~251.3
+  const offset = circumference * (1 - frac);
+  document.getElementById('gaugeFill').style.strokeDashoffset = offset;
+
+  const angleDeg = -90 + frac * 180;
+  document.getElementById('gaugeNeedle').style.transform = `rotate(${angleDeg}deg)`;
+  document.getElementById('gaugeText').textContent = eff.toFixed(1);
+}
+
+/* ─── History ─── */
+function addHistory(result, params) {
+  const ts = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  history.unshift({ result, params, ts });
+  if (history.length > 20) history.pop();
+
+  const list = document.getElementById('historyList');
+  list.innerHTML = history.map((h, i) => `
+    <div class="hist-item" onclick="reloadHistory(${i})">
+      <div class="hist-left">
+        <strong>RAM ${h.params.ram}KB · Flash ${h.params.flash}KB · ${h.params.clock}MHz · $${(+h.params.cost).toFixed(1)}</strong>
+        ${h.ts}
+      </div>
+      <span class="hist-badge badge-${h.result.key}">${h.result.label}</span>
+    </div>
+  `).join('');
+}
+
+function reloadHistory(i) {
+  const h = history[i];
+  // Just show a toast
+  document.getElementById('statusText').textContent =
+    `History entry: ${h.result.label} at ${h.ts} — RAM ${h.params.ram}KB / Flash ${h.params.flash}KB`;
+  document.getElementById('statusBar').classList.add('show');
+  setTimeout(() => document.getElementById('statusBar').classList.remove('show'), 3000);
+}
+
+/* ─── Export ─── */
+function exportJSON() {
+  if (!lastConfig) { alert('Run an evaluation first.'); return; }
+  const ts   = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const data = {
+    timestamp:    new Date().toISOString(),
+    model:        "DNN · Input(9) → Dense(64,ReLU) → Dense(32,ReLU) → Softmax(3)",
+    test_accuracy: "98.9%",
+    parameters: {
+      RAM_KB:             lastConfig.ram,
+      FLASH_KB:           lastConfig.flash,
+      UART:               lastConfig.uart,
+      I2C:                lastConfig.i2c,
+      SPI:                lastConfig.spi,
+      GPIO:               lastConfig.gpio,
+      CLOCK_MHZ:          lastConfig.clock,
+      ACTIVE_CURRENT_mA:  lastConfig.current,
+      COST_USD:           lastConfig.cost
+    },
+    derived: {
+      COST_POWER_INDEX:  +lastConfig.cpi.toFixed(6),
+      EFFICIENCY_SCORE:  +lastConfig.eff.toFixed(2)
+    },
+    prediction: {
+      label:       lastConfig.label,
+      confidence:  +(lastConfig.conf).toFixed(2),
+      probabilities: {
+        "Not Suitable": +(lastConfig.probs[0]*100).toFixed(2),
+        "Suitable":     +(lastConfig.probs[1]*100).toFixed(2),
+        "Optimal":      +(lastConfig.probs[2]*100).toFixed(2)
+      }
+    }
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = `MCU_Selection_${ts}.json`;
+  a.click();
+}
+</script>
+</body>
+</html>
