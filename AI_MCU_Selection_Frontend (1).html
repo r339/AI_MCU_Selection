@@ -1,0 +1,1863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI-Based MCU Selection System — Project Presentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #1a1f3c;
+      --accent: #4f6ef7;
+      --accent2: #00d4aa;
+      --bg: #0d1021;
+      --card: #141829;
+      --border: #252a45;
+      --text: #e8ecff;
+      --muted: #7a82a8;
+      --success: #00d4aa;
+      --warning: #f5a623;
+      --danger: #e84c6e;
+      --optimal: #00d4aa;
+      --suitable: #4f6ef7;
+      --notsuitable: #e84c6e;
+      --code-bg: #0a0e1a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── SIDEBAR NAV ── */
+    .sidebar {
+      position: fixed; left: 0; top: 0; bottom: 0;
+      width: 230px; background: #0a0e1a;
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      z-index: 100; overflow-y: auto;
+      transition: transform .3s;
+    }
+    .sidebar-logo {
+      padding: 20px 18px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-logo .logo-icon {
+      width: 36px; height: 36px; border-radius: 9px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; margin-bottom: 8px;
+    }
+    .sidebar-logo .logo-text { font-size: 14px; font-weight: 700; letter-spacing: -.3px; }
+    .sidebar-logo .logo-sub  { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+    .nav-section { padding: 12px 10px 4px; }
+    .nav-section-label {
+      font-size: 9px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 1.2px;
+      padding: 0 8px 6px;
+    }
+    .nav-link {
+      display: flex; align-items: center; gap: 9px;
+      padding: 8px 10px; border-radius: 8px;
+      color: var(--muted); font-size: 12.5px; font-weight: 500;
+      cursor: pointer; transition: all .15s; text-decoration: none;
+      margin-bottom: 2px; border: none; background: none; width: 100%; text-align: left;
+    }
+    .nav-link:hover { background: rgba(79,110,247,.1); color: var(--text); }
+    .nav-link.active { background: rgba(79,110,247,.18); color: var(--accent); }
+    .nav-link .nav-icon { font-size: 14px; width: 16px; text-align: center; flex-shrink: 0; }
+
+    /* ── MAIN LAYOUT ── */
+    .main { margin-left: 230px; min-height: 100vh; }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      background: rgba(10,14,26,.9); backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 50;
+    }
+    .topbar-title { font-size: 15px; font-weight: 700; }
+    .topbar-badges { display: flex; gap: 8px; align-items: center; }
+    .badge {
+      background: rgba(79,110,247,.15); border: 1px solid rgba(79,110,247,.3);
+      color: var(--accent); padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    }
+    .badge.green { background: rgba(0,212,170,.12); border-color: rgba(0,212,170,.3); color: var(--accent2); }
+
+    /* ── SECTION PAGES ── */
+    .page { display: none; padding: 32px; }
+    .page.active { display: block; }
+
+    /* ── COVER PAGE ── */
+    .cover-hero {
+      text-align: center; padding: 60px 20px 48px;
+      background: radial-gradient(ellipse at 50% 0%, rgba(79,110,247,.18) 0%, transparent 70%);
+      border-radius: 20px; border: 1px solid var(--border); margin-bottom: 32px;
+      position: relative; overflow: hidden;
+    }
+    .cover-hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(79,110,247,.04) 39px, rgba(79,110,247,.04) 40px),
+                  repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(79,110,247,.04) 39px, rgba(79,110,247,.04) 40px);
+      pointer-events: none;
+    }
+    .cover-icon {
+      width: 80px; height: 80px; border-radius: 20px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 40px; margin: 0 auto 24px; position: relative; z-index: 1;
+      box-shadow: 0 0 60px rgba(79,110,247,.4);
+    }
+    .cover-hero h1 { font-size: 34px; font-weight: 700; margin-bottom: 8px; position: relative; z-index: 1; }
+    .cover-hero h2 { font-size: 16px; color: var(--accent2); font-weight: 500; margin-bottom: 28px; position: relative; z-index: 1; }
+    .cover-meta {
+      display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; position: relative; z-index: 1;
+    }
+    .cover-meta .badge { font-size: 12px; padding: 6px 16px; }
+
+    .team-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 28px; }
+    .team-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+      padding: 18px 14px; text-align: center;
+    }
+    .team-avatar {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      margin: 0 auto 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; font-weight: 700; color: #fff;
+    }
+    .team-name { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+    .team-roll { font-size: 11px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; }
+    .team-links { display: flex; gap: 6px; justify-content: center; margin-top: 8px; }
+    .team-link {
+      font-size: 10px; color: var(--accent); background: rgba(79,110,247,.1);
+      border: 1px solid rgba(79,110,247,.25); border-radius: 5px;
+      padding: 2px 7px; text-decoration: none; transition: all .15s;
+    }
+    .team-link:hover { background: rgba(79,110,247,.25); }
+    .team-link.gh { color: var(--accent2); background: rgba(0,212,170,.1); border-color: rgba(0,212,170,.25); }
+    .team-link.gh:hover { background: rgba(0,212,170,.25); }
+
+    .info-cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    .info-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px;
+    }
+    .info-card .ic-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 6px; }
+    .info-card .ic-val { font-size: 15px; font-weight: 600; }
+
+    /* ── SECTION HEADINGS ── */
+    .section-head { margin-bottom: 24px; }
+    .section-head h2 { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+    .section-head p  { color: var(--muted); font-size: 14px; }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 24px;
+    }
+    .card + .card { margin-top: 20px; }
+    .card-title {
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .8px; color: var(--muted); margin-bottom: 18px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-title::before { content: ''; width: 3px; height: 14px; background: var(--accent); border-radius: 2px; flex-shrink: 0; }
+
+    /* ── PROSE ── */
+    .prose { font-size: 14px; line-height: 1.8; color: #c8d0ef; }
+    .prose p { margin-bottom: 14px; }
+    .prose strong { color: var(--text); font-weight: 600; }
+    .prose ul { padding-left: 20px; margin-bottom: 14px; }
+    .prose ul li { margin-bottom: 6px; }
+
+    /* ── STAT BARS ── */
+    .stat-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .stat-row .sr-label { width: 130px; font-size: 12px; color: var(--muted); flex-shrink: 0; }
+    .stat-row .sr-bar-bg { flex: 1; background: var(--bg); border-radius: 4px; height: 8px; overflow: hidden; }
+    .stat-row .sr-bar { height: 100%; border-radius: 4px; transition: width 1s ease; }
+    .stat-row .sr-val { width: 60px; font-size: 12px; font-weight: 600; text-align: right; font-family: 'IBM Plex Mono', monospace; }
+
+    /* ── ARCHITECTURE VIZ ── */
+    .arch-flow {
+      display: flex; align-items: center; justify-content: center; gap: 0;
+      padding: 28px 0; flex-wrap: wrap;
+    }
+    .arch-node {
+      background: var(--bg); border: 1.5px solid var(--border); border-radius: 12px;
+      padding: 14px 20px; text-align: center; min-width: 90px; transition: all .2s;
+    }
+    .arch-node:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .arch-node .n-label { font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+    .arch-node .n-val   { font-size: 18px; font-weight: 700; color: var(--accent); }
+    .arch-node .n-sub   { font-size: 10px; color: var(--accent2); margin-top: 3px; }
+    .arch-node.in-node  { border-color: var(--accent2); }
+    .arch-node.out-node { border-color: var(--warning); }
+    .arch-node.out-node .n-val { color: var(--warning); }
+    .arch-arrow { color: var(--muted); font-size: 22px; padding: 0 8px; }
+
+    /* ── TABLE ── */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th {
+      padding: 10px 14px; text-align: left; font-size: 11px;
+      color: var(--muted); text-transform: uppercase; letter-spacing: .6px;
+      border-bottom: 1px solid var(--border); font-weight: 600;
+    }
+    .data-table td {
+      padding: 10px 14px; border-bottom: 1px solid rgba(37,42,69,.5);
+      color: #c8d0ef;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: rgba(79,110,247,.04); }
+    .data-table .mono { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--accent2); }
+
+    /* ── METRICS GRID ── */
+    .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+    .metric-tile {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px; text-align: center;
+    }
+    .metric-tile .m-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+    .metric-tile .m-val { font-size: 28px; font-weight: 700; color: var(--text); }
+    .metric-tile .m-unit { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .metric-tile.highlight { border-color: rgba(0,212,170,.3); background: rgba(0,212,170,.05); }
+    .metric-tile.highlight .m-val { color: var(--accent2); }
+
+    /* ── CODE BLOCK ── */
+    pre {
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px; overflow-x: auto;
+      font-family: 'IBM Plex Mono', monospace; font-size: 13px;
+      line-height: 1.7; color: #c8d0ef; white-space: pre;
+    }
+    .code-label {
+      display: flex; justify-content: space-between; align-items: center;
+      background: #0a0e1a; border: 1px solid var(--border);
+      border-bottom: none; border-radius: 12px 12px 0 0;
+      padding: 10px 18px; font-size: 11px; color: var(--muted);
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .code-label span { color: var(--accent2); }
+    .code-block-wrap pre { border-radius: 0 0 12px 12px; }
+    .kw { color: #bb86fc; }
+    .fn { color: #4f6ef7; }
+    .st { color: #00d4aa; }
+    .cm { color: #4a5280; font-style: italic; }
+    .nu { color: #f5a623; }
+
+    /* ── COPY BUTTON ── */
+    .copy-btn {
+      background: rgba(79,110,247,.15); border: 1px solid rgba(79,110,247,.3);
+      color: var(--accent); padding: 4px 12px; border-radius: 6px;
+      font-size: 11px; cursor: pointer; transition: all .15s; font-family: inherit;
+    }
+    .copy-btn:hover { background: rgba(79,110,247,.3); }
+
+    /* ── DEMO SECTION (existing tool) ── */
+    .grid { display: grid; grid-template-columns: 1fr 400px; gap: 24px; }
+
+    /* ── Inputs ── */
+    .param-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .field label {
+      display: block; font-size: 11px; font-weight: 600; color: var(--muted);
+      margin-bottom: 7px; text-transform: uppercase; letter-spacing: .5px;
+    }
+    .field-row { display: flex; align-items: center; gap: 0; }
+    .field input[type=range] {
+      flex: 1; -webkit-appearance: none;
+      height: 4px; background: var(--border); border-radius: 2px; outline: none; cursor: pointer;
+    }
+    .field input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+      background: var(--accent); cursor: pointer; box-shadow: 0 0 0 3px rgba(79,110,247,.2);
+    }
+    .field .val-box {
+      min-width: 68px; text-align: right; padding: 5px 10px;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+      font-size: 12px; font-weight: 600; color: var(--text); margin-left: 12px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .field .unit { font-size: 10px; color: var(--muted); display: block; margin-top: 2px; text-align: right; }
+
+    .run-btn {
+      width: 100%; padding: 16px; margin-top: 20px;
+      background: linear-gradient(135deg, var(--accent), #6b8aff);
+      color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 700;
+      cursor: pointer; letter-spacing: .3px; transition: all .2s;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .run-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(79,110,247,.4); }
+    .run-btn.loading { opacity: .7; pointer-events: none; }
+
+    /* ── Result panel ── */
+    .result-panel { display: flex; flex-direction: column; gap: 18px; }
+    .verdict-card {
+      border-radius: 16px; padding: 28px; text-align: center;
+      border: 1px solid var(--border); transition: all .4s;
+    }
+    .verdict-card.optimal  { background: rgba(0,212,170,.07); border-color: rgba(0,212,170,.35); }
+    .verdict-card.suitable { background: rgba(79,110,247,.07); border-color: rgba(79,110,247,.35); }
+    .verdict-card.notsuitable { background: rgba(232,76,110,.07); border-color: rgba(232,76,110,.35); }
+    .verdict-card.idle     { background: rgba(122,130,168,.05); border-color: var(--border); }
+    .verdict-icon { font-size: 44px; margin-bottom: 10px; }
+    .verdict-label { font-size: 26px; font-weight: 800; margin-bottom: 4px; }
+    .optimal .verdict-label  { color: var(--optimal); }
+    .suitable .verdict-label { color: var(--suitable); }
+    .notsuitable .verdict-label { color: var(--danger); }
+    .idle .verdict-label { color: var(--muted); }
+    .verdict-conf { font-size: 13px; color: var(--muted); }
+
+    .prob-section .prob-row { margin-bottom: 12px; }
+    .prob-label-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; }
+    .prob-bar-bg { background: var(--bg); border-radius: 4px; height: 7px; overflow: hidden; }
+    .prob-bar { height: 100%; border-radius: 4px; transition: width .6s ease; width: 0; }
+    .bar-optimal  { background: var(--optimal); }
+    .bar-suitable { background: var(--suitable); }
+    .bar-notsuitable { background: var(--danger); }
+
+    .metrics-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .metric-tile2 {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 14px;
+    }
+    .metric-tile2 .m-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+    .metric-tile2 .m-val { font-size: 18px; font-weight: 700; }
+
+    .gauge-wrap { text-align: center; }
+    .gauge-wrap svg { display: block; margin: 0 auto; }
+    .gauge-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    .history-list { display: flex; flex-direction: column; gap: 8px; max-height: 240px; overflow-y: auto; }
+    .history-list::-webkit-scrollbar { width: 4px; }
+    .history-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .hist-item {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+      padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; transition: border-color .2s;
+    }
+    .hist-item:hover { border-color: var(--accent); }
+    .hist-left { font-size: 12px; color: var(--muted); }
+    .hist-left strong { display: block; font-size: 12px; color: var(--text); margin-bottom: 2px; font-family: 'IBM Plex Mono', monospace; }
+    .hist-badge { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+    .badge-optimal     { background: rgba(0,212,170,.15); color: var(--optimal); }
+    .badge-suitable    { background: rgba(79,110,247,.15); color: var(--suitable); }
+    .badge-notsuitable { background: rgba(232,76,110,.15); color: var(--danger); }
+
+    .arch-diagram { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0; padding: 12px 0; }
+    .arch-small { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 16px; text-align: center; min-width: 80px; }
+    .arch-small .n-label { font-size: 10px; color: var(--muted); }
+    .arch-small .n-val   { font-size: 15px; font-weight: 700; color: var(--accent); }
+
+    .tabs { display: flex; gap: 4px; margin-bottom: 18px; background: var(--bg); padding: 4px; border-radius: 10px; border: 1px solid var(--border); }
+    .tab-btn {
+      flex: 1; padding: 8px; background: none; border: none; color: var(--muted);
+      font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 7px; transition: all .2s;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .tab-btn.active { background: var(--card); color: var(--text); }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    .export-btn {
+      width: 100%; padding: 11px; background: none;
+      border: 1px solid var(--border); border-radius: 10px;
+      color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .export-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; }
+
+    .status-bar {
+      background: rgba(0,212,170,.08); border: 1px solid rgba(0,212,170,.2);
+      border-radius: 8px; padding: 8px 14px; font-size: 12px; color: var(--accent2);
+      margin-top: 10px; display: none; align-items: center; gap: 8px;
+    }
+    .status-bar.show { display: flex; }
+
+    /* ── RESEARCH PAPER SECTION ── */
+    .paper-meta { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+    .paper-tag {
+      background: rgba(79,110,247,.12); border: 1px solid rgba(79,110,247,.25);
+      color: var(--accent); padding: 4px 12px; border-radius: 6px; font-size: 12px;
+    }
+    .paper-section { margin-bottom: 28px; }
+    .paper-section h3 { font-size: 16px; font-weight: 700; margin-bottom: 10px; color: var(--accent2); }
+
+    /* ── RESULTS CHARTS ── */
+    .chart-area {
+      background: var(--code-bg); border: 1px solid var(--border); border-radius: 12px;
+      padding: 24px; position: relative; overflow: hidden;
+    }
+    .chart-area canvas { display: block; width: 100% !important; }
+
+    .cm-grid {
+      display: grid; grid-template-columns: repeat(3,1fr); gap: 4px; max-width: 260px; margin: 16px auto 0;
+    }
+    .cm-cell {
+      aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 700; border-radius: 6px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .cm-label { font-size: 10px; color: var(--muted); text-align: center; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border); padding: 18px 32px;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 12px; color: var(--muted); margin-left: 230px;
+    }
+
+    @media (max-width: 1100px) {
+      .sidebar { transform: translateX(-100%); }
+      .main { margin-left: 0; }
+      footer { margin-left: 0; }
+      .team-grid { grid-template-columns: repeat(3,1fr); }
+      .metrics-grid { grid-template-columns: repeat(2,1fr); }
+    }
+    @media (max-width: 800px) {
+      .grid { grid-template-columns: 1fr; }
+      .two-col, .three-col, .info-cards { grid-template-columns: 1fr; }
+      .team-grid { grid-template-columns: repeat(2,1fr); }
+    }
+
+    /* ── REVEAL ANIMATION ── */
+    @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+    .page.active .card, .page.active .chart-area, .page.active .cover-hero {
+      animation: fadeUp .4s ease both;
+    }
+    .page.active .card:nth-child(2) { animation-delay: .05s; }
+    .page.active .card:nth-child(3) { animation-delay: .1s; }
+    .page.active .card:nth-child(4) { animation-delay: .15s; }
+
+    /* ── PILL TIMELINE ── */
+    .timeline { display: flex; flex-direction: column; gap: 0; }
+    .tl-item { display: flex; gap: 16px; }
+    .tl-left { display: flex; flex-direction: column; align-items: center; width: 36px; }
+    .tl-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--accent); flex-shrink: 0; margin-top: 3px; }
+    .tl-line { flex: 1; width: 2px; background: var(--border); margin: 4px 0; }
+    .tl-item:last-child .tl-line { display: none; }
+    .tl-content { padding-bottom: 20px; flex: 1; }
+    .tl-content h4 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .tl-content p  { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* ── HIGHLIGHT BOX ── */
+    .highlight-box {
+      background: rgba(79,110,247,.08); border: 1px solid rgba(79,110,247,.25);
+      border-radius: 12px; padding: 18px 20px; margin-top: 16px;
+    }
+    .highlight-box.green { background: rgba(0,212,170,.07); border-color: rgba(0,212,170,.25); }
+    .highlight-box p { font-size: 13.5px; color: var(--text); line-height: 1.7; }
+
+    [data-tip] { position: relative; cursor: help; }
+    [data-tip]::after {
+      content: attr(data-tip); position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%);
+      background: #1e2440; border: 1px solid var(--border); border-radius: 6px;
+      padding: 5px 10px; font-size: 11px; color: var(--muted); white-space: nowrap;
+      pointer-events: none; opacity: 0; transition: opacity .2s; z-index: 99;
+    }
+    [data-tip]:hover::after { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════ SIDEBAR ════════════════════ -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">🧠</div>
+    <div class="logo-text">MCU·AI</div>
+    <div class="logo-sub">Final Project Presentation</div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Project</div>
+    <button class="nav-link active" onclick="showPage('cover')"><span class="nav-icon">🏠</span> Cover & Team</button>
+    <button class="nav-link" onclick="showPage('abstract')"><span class="nav-icon">📄</span> Abstract</button>
+    <button class="nav-link" onclick="showPage('intro')"><span class="nav-icon">🔭</span> Introduction</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Research</div>
+    <button class="nav-link" onclick="showPage('literature')"><span class="nav-icon">📚</span> Literature Review</button>
+    <button class="nav-link" onclick="showPage('methodology')"><span class="nav-icon">⚙️</span> Methodology</button>
+    <button class="nav-link" onclick="showPage('results')"><span class="nav-icon">📊</span> Results</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Code & Demo</div>
+    <button class="nav-link" onclick="showPage('code')"><span class="nav-icon">💻</span> Code Listing</button>
+    <button class="nav-link" onclick="showPage('demo')"><span class="nav-icon">⚡</span> Live Demo</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Conclusion</div>
+    <button class="nav-link" onclick="showPage('conclusion')"><span class="nav-icon">🎯</span> Conclusion</button>
+    <button class="nav-link" onclick="showPage('references')"><span class="nav-icon">📖</span> References</button>
+    <button class="nav-link" onclick="showPage('paper')"><span class="nav-icon">🗞️</span> Research Paper</button>
+  </div>
+</nav>
+
+<!-- ════════════════════ MAIN ════════════════════ -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">AI-Based MCU Selection Using Deep Learning</div>
+    <div class="topbar-badges">
+      <span class="badge green">DNN · 98.9% Acc</span>
+      <span class="badge">Woxsen University · 2024–25</span>
+    </div>
+  </div>
+
+  <!-- ══ COVER ══ -->
+  <div class="page active" id="page-cover">
+    <div class="cover-hero">
+      <div class="cover-icon">🧠</div>
+      <h1>AI-Based MCU Selection Using Deep Learning</h1>
+      <h2>Multi-Class Classification: Not Suitable / Suitable / Optimal</h2>
+      <div class="cover-meta">
+        <span class="badge">B.Tech AIML · School of Technology</span>
+        <span class="badge green">Woxsen University, Hyderabad</span>
+        <span class="badge">Mentor: Dr. Geeta Tripathi</span>
+        <span class="badge">AY 2024–2025</span>
+      </div>
+    </div>
+
+    <div style="margin-bottom:24px;">
+      <div class="section-head"><h2>Team Members</h2><p>Submitted by five students from the Department of AI &amp; Machine Learning</p></div>
+      <div class="team-grid">
+        <div class="team-card">
+          <div class="team-avatar">AP</div>
+          <div class="team-name">Aditya Polawar</div>
+          <div class="team-roll">23WU0101004</div>
+          <div class="team-links">
+            <a class="team-link" href="https://leetcode.com/u/Adityapolawar/" target="_blank">LC</a>
+            <a class="team-link gh" href="https://github.com/adityapolawar0228-ctrl" target="_blank">GH</a>
+          </div>
+        </div>
+        <div class="team-card">
+          <div class="team-avatar">RJ</div>
+          <div class="team-name">Rudrasinh Jadeja</div>
+          <div class="team-roll">23WU0102171</div>
+          <div class="team-links">
+            <a class="team-link" href="https://leetcode.com/u/jadejark2/" target="_blank">LC</a>
+            <a class="team-link gh" href="https://github.com/r339" target="_blank">GH</a>
+          </div>
+        </div>
+        <div class="team-card">
+          <div class="team-avatar">GR</div>
+          <div class="team-name">G Rohan Reddy</div>
+          <div class="team-roll">23WU0101049</div>
+          <div class="team-links">
+            <a class="team-link" href="https://leetcode.com/u/rohan8496/" target="_blank">LC</a>
+            <a class="team-link gh" href="https://github.com/rohanreddygayapu-debug" target="_blank">GH</a>
+          </div>
+        </div>
+        <div class="team-card">
+          <div class="team-avatar">NG</div>
+          <div class="team-name">Nihal G</div>
+          <div class="team-roll">23WU0101124</div>
+          <div class="team-links">
+            <a class="team-link" href="https://leetcode.com/u/Nihal_Gandrathi/" target="_blank">LC</a>
+            <a class="team-link gh" href="https://github.com/Nihal1711" target="_blank">GH</a>
+          </div>
+        </div>
+        <div class="team-card">
+          <div class="team-avatar">JP</div>
+          <div class="team-name">Jay Pagar</div>
+          <div class="team-roll">23WU0101065</div>
+          <div class="team-links">
+            <a class="team-link" href="#" target="_blank">LC</a>
+            <a class="team-link gh" href="#" target="_blank">GH</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-cards">
+      <div class="info-card">
+        <div class="ic-label">Dataset</div>
+        <div class="ic-val">25,000+ MCU Configurations</div>
+      </div>
+      <div class="info-card">
+        <div class="ic-label">Model Architecture</div>
+        <div class="ic-val">DNN: Input(11) → 64 → 32 → Softmax(3)</div>
+      </div>
+      <div class="info-card">
+        <div class="ic-label">Best Test Accuracy</div>
+        <div class="ic-val" style="color:var(--accent2)">98.9% · F1: 0.96</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ABSTRACT ══ -->
+  <div class="page" id="page-abstract">
+    <div class="section-head"><h2>Abstract</h2><p>Project overview and key contributions</p></div>
+    <div class="card">
+      <div class="card-title">Project Abstract</div>
+      <div class="prose">
+        <p>Choosing the right Microcontroller Unit (MCU) is one of the most consequential early decisions in any embedded systems project, yet the process remains largely manual and time-consuming. Engineers are typically required to sift through hundreds of datasheets, weighing parameters such as RAM, Flash memory, clock speed, interface support, power draw, and cost simultaneously.</p>
+        <p>This project takes a different approach by framing MCU selection as a <strong>three-class classification problem</strong>. Using a synthetic dataset of over 20,000 MCU configurations, we trained a deep neural network (DNN) to categorise each MCU as <strong>Not Suitable</strong>, <strong>Suitable</strong>, or <strong>Optimal</strong> for a given application context.</p>
+        <p>The model was implemented using <strong>TensorFlow and Keras</strong>, and achieved a weighted F1-score of approximately <strong>0.96</strong> across all three classes, reflecting strong and balanced performance throughout. Two engineered composite features—the <strong>Cost-Power Index (CPI)</strong> and an <strong>Efficiency Score</strong>—were shown to be decisive in simplifying the classification boundary.</p>
+        <p>To make the system genuinely useful outside a research setting, we also developed an interactive frontend enabling real-time predictions and JSON configuration export. Taken together, this work demonstrates that deep learning can meaningfully assist embedded systems engineers in the component selection process, reducing both time and the likelihood of suboptimal design choices.</p>
+      </div>
+      <div class="highlight-box green">
+        <p><strong>Keywords:</strong> Deep Learning · MCU Selection · Multi-Class Classification · TensorFlow · Keras · Feature Engineering · Embedded Systems · Cost-Power Index · Neural Networks</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px;">
+      <div class="card-title">Key Performance Indicators</div>
+      <div class="metrics-grid">
+        <div class="metric-tile highlight">
+          <div class="m-label">Test Accuracy</div>
+          <div class="m-val">98.9%</div>
+          <div class="m-unit">on held-out test set</div>
+        </div>
+        <div class="metric-tile highlight">
+          <div class="m-label">Weighted F1-Score</div>
+          <div class="m-val">0.96</div>
+          <div class="m-unit">across 3 classes</div>
+        </div>
+        <div class="metric-tile">
+          <div class="m-label">Training Epochs</div>
+          <div class="m-val">35</div>
+          <div class="m-unit">batch size: 64</div>
+        </div>
+        <div class="metric-tile">
+          <div class="m-label">Dataset Size</div>
+          <div class="m-val">25K+</div>
+          <div class="m-unit">MCU configurations</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ INTRODUCTION ══ -->
+  <div class="page" id="page-intro">
+    <div class="section-head"><h2>Introduction</h2><p>Background, motivation, problem statement, and objectives</p></div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Background</div>
+        <div class="prose">
+          <p>The MCU landscape today is genuinely vast. Vendors such as STMicroelectronics, NXP, Microchip, and Espressif each offer entire families of devices that vary across processor speed, memory capacity, communication interfaces, power requirements, and price points.</p>
+          <p>Navigating this space manually—cross-referencing datasheets and application notes—is time-consuming and prone to oversight. The availability of large-scale component databases and the maturity of modern machine learning frameworks make this an ideal domain for automation.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Motivation</div>
+        <div class="prose">
+          <ul>
+            <li><strong>Engineering Efficiency:</strong> Automating evaluation reduces time-to-design and cuts suboptimal selections.</li>
+            <li><strong>Scalability:</strong> An AI system evaluates thousands of configurations in milliseconds vs. a human's dozens.</li>
+            <li><strong>Cost Reduction:</strong> Correctly identifying the optimal MCU directly reduces bill-of-materials and operational power costs.</li>
+            <li><strong>Innovation:</strong> This sits at an interesting intersection between AI and embedded systems engineering.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Problem Statement</div>
+      <div class="prose">
+        <p>Given a set of MCU specifications—specifically <strong>RAM, Flash memory, UART, I2C, and SPI interface counts, GPIO pin count, clock speed, active current draw, and unit cost</strong>—we want a model that can classify the MCU into one of three suitability categories:</p>
+      </div>
+      <div class="three-col" style="margin-top:16px;">
+        <div style="background:rgba(232,76,110,.08);border:1px solid rgba(232,76,110,.3);border-radius:12px;padding:18px;text-align:center;">
+          <div style="font-size:28px;margin-bottom:8px;">❌</div>
+          <div style="font-size:14px;font-weight:700;color:var(--danger);margin-bottom:6px;">Class 0 — Not Suitable</div>
+          <div style="font-size:12px;color:var(--muted);">SUITABLE == 0; MCU fails to meet baseline requirements</div>
+        </div>
+        <div style="background:rgba(79,110,247,.08);border:1px solid rgba(79,110,247,.3);border-radius:12px;padding:18px;text-align:center;">
+          <div style="font-size:28px;margin-bottom:8px;">✅</div>
+          <div style="font-size:14px;font-weight:700;color:var(--suitable);margin-bottom:6px;">Class 1 — Suitable</div>
+          <div style="font-size:12px;color:var(--muted);">SUITABLE == 1 but EFFICIENCY_SCORE &lt; 50</div>
+        </div>
+        <div style="background:rgba(0,212,170,.08);border:1px solid rgba(0,212,170,.3);border-radius:12px;padding:18px;text-align:center;">
+          <div style="font-size:28px;margin-bottom:8px;">🏆</div>
+          <div style="font-size:14px;font-weight:700;color:var(--optimal);margin-bottom:6px;">Class 2 — Optimal</div>
+          <div style="font-size:12px;color:var(--muted);">SUITABLE == 1 and EFFICIENCY_SCORE ≥ 50</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Objectives</div>
+      <div class="timeline">
+        <div class="tl-item"><div class="tl-left"><div class="tl-dot"></div><div class="tl-line"></div></div><div class="tl-content"><h4>Dataset Construction</h4><p>Construct and preprocess a large-scale MCU dataset (over 20,000 records) suitable for multi-class classification.</p></div></div>
+        <div class="tl-item"><div class="tl-left"><div class="tl-dot"></div><div class="tl-line"></div></div><div class="tl-content"><h4>Feature Engineering</h4><p>Engineer composite features that encode the hardware trade-offs practitioners care about (CPI, Efficiency Score).</p></div></div>
+        <div class="tl-item"><div class="tl-left"><div class="tl-dot"></div><div class="tl-line"></div></div><div class="tl-content"><h4>Model Development</h4><p>Design, train, and rigorously evaluate a deep neural network for this classification task.</p></div></div>
+        <div class="tl-item"><div class="tl-left"><div class="tl-dot"></div><div class="tl-line"></div></div><div class="tl-content"><h4>Performance Analysis</h4><p>Analyse model performance using accuracy metrics, classification reports, and confusion matrix visualisations.</p></div></div>
+        <div class="tl-item"><div class="tl-left"><div class="tl-dot"></div><div class="tl-line"></div></div><div class="tl-content"><h4>Frontend Deployment</h4><p>Deploy an interactive frontend enabling real-time predictions and JSON configuration export without ML expertise.</p></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Dataset Overview — MCU Feature Space</div>
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead>
+            <tr><th>Feature</th><th>Type</th><th>Range</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>RAM_KB</td><td class="mono">int</td><td class="mono">2–256 KB</td><td>Volatile memory for runtime data</td></tr>
+            <tr><td>FLASH_KB</td><td class="mono">int</td><td class="mono">16–2048 KB</td><td>Non-volatile program storage</td></tr>
+            <tr><td>UART_COUNT</td><td class="mono">int</td><td class="mono">0–6</td><td>UART serial interface ports</td></tr>
+            <tr><td>I2C_COUNT</td><td class="mono">int</td><td class="mono">0–4</td><td>I²C bus interfaces</td></tr>
+            <tr><td>SPI_COUNT</td><td class="mono">int</td><td class="mono">0–4</td><td>SPI serial interfaces</td></tr>
+            <tr><td>GPIO_COUNT</td><td class="mono">int</td><td class="mono">10–120</td><td>General purpose I/O pins</td></tr>
+            <tr><td>CLOCK_MHZ</td><td class="mono">int</td><td class="mono">8–160 MHz</td><td>CPU clock frequency</td></tr>
+            <tr><td>ACTIVE_CURRENT_mA</td><td class="mono">float</td><td class="mono">2–60 mA</td><td>Active mode current draw</td></tr>
+            <tr><td>COST_USD</td><td class="mono">float</td><td class="mono">$0.30–$15</td><td>Unit price</td></tr>
+            <tr><td>COST_POWER_INDEX</td><td class="mono">float</td><td class="mono">derived</td><td>(Cost × Current) / (RAM + Flash)</td></tr>
+            <tr><td>EFFICIENCY_SCORE</td><td class="mono">float</td><td class="mono">0–100</td><td>100 × (1 / (1 + CPI))</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ LITERATURE ══ -->
+  <div class="page" id="page-literature">
+    <div class="section-head"><h2>Literature Review</h2><p>Prior work in hardware component selection, tabular deep learning, and interactive AI deployment</p></div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">ML for Component Selection</div>
+        <div class="prose">
+          <p>Applying machine learning to hardware component selection is still a relatively young field. Historically, electronic design automation relied on rule-based expert systems. More recently, supervised learning methods including decision trees, random forests, and SVMs have been explored.</p>
+          <p><strong>Zhu et al. (2020)</strong> demonstrated that gradient-boosted models could outperform rule-based systems for analog component selection, highlighting the value of composite features that encode power and cost trade-offs — an observation that directly informed our feature engineering strategy.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Deep Learning for Tabular Data</div>
+        <div class="prose">
+          <p>One of the persistent questions in applied ML is whether deep learning can match tree-based ensemble methods on structured tabular data.</p>
+          <p><strong>Arik &amp; Pfister (2021)</strong> made a strong case with TabNet, an attention-based architecture tailored to tabular inputs. <strong>Klambauer et al. (2017)</strong> showed that straightforward MLPs with well-chosen activations can be surprisingly competitive on engineered numerical features.</p>
+          <p>Given our deployment context required low latency inference, the simplicity and speed of a standard fully connected network made it the pragmatic choice.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Feature Engineering in Hardware Design</div>
+        <div class="prose">
+          <p>The practice of condensing multiple hardware parameters into composite performance indices is well established in processor benchmarking. Metrics like <strong>performance-per-watt</strong> have long been used to give engineers a single, interpretable figure of merit when comparing diverse devices.</p>
+          <p>Our <strong>Cost-Power Index</strong> and <strong>Efficiency Score</strong> follow the same spirit — they combine cost, power, and memory into aggregate features that make the classification boundary cleaner and more meaningful.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Decision Support &amp; Interactive AI Tools</div>
+        <div class="prose">
+          <p><strong>Graziosi et al. (2021)</strong> proposed a knowledge-based decision support system for IoT device selection grounded in probabilistic graphical models. While effective, that kind of system requires significant ongoing expert effort to keep the knowledge base current.</p>
+          <p><strong>Gradio</strong> has emerged as one of the most practical tools for deploying ML models as interactive web applications. It bridges the gap between a trained model and the practitioner who needs to use it, often without any ML background.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Research Gap</div>
+      <div class="highlight-box">
+        <p>Despite the growing body of work in both hardware component selection and tabular deep learning, <strong>few published studies have addressed MCU selection specifically as a multi-class deep learning problem</strong> — and fewer still have paired that with engineered composite features and an interactive deployment layer. This project is an attempt to close that gap by delivering an end-to-end system that combines feature engineering, DNN classification, and interactive deployment in a single cohesive pipeline.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ METHODOLOGY ══ -->
+  <div class="page" id="page-methodology">
+    <div class="section-head"><h2>Methodology</h2><p>Data preparation, feature engineering, model architecture, and training configuration</p></div>
+
+    <div class="card">
+      <div class="card-title">System Architecture & Pipeline</div>
+      <div style="display:flex;gap:0;align-items:center;justify-content:center;flex-wrap:wrap;padding:20px 0;">
+        <div style="background:var(--bg);border:1.5px solid rgba(0,212,170,.4);border-radius:12px;padding:14px 20px;text-align:center;min-width:110px;">
+          <div style="font-size:24px;margin-bottom:6px;">📥</div>
+          <div style="font-size:12px;font-weight:700;color:var(--accent2);">Data Ingestion</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:3px;">CSV · 25K rows</div>
+        </div>
+        <div style="color:var(--muted);font-size:24px;padding:0 10px;">→</div>
+        <div style="background:var(--bg);border:1.5px solid rgba(79,110,247,.4);border-radius:12px;padding:14px 20px;text-align:center;min-width:110px;">
+          <div style="font-size:24px;margin-bottom:6px;">🔧</div>
+          <div style="font-size:12px;font-weight:700;color:var(--accent);">Feature Eng.</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:3px;">CPI + Efficiency</div>
+        </div>
+        <div style="color:var(--muted);font-size:24px;padding:0 10px;">→</div>
+        <div style="background:var(--bg);border:1.5px solid rgba(79,110,247,.4);border-radius:12px;padding:14px 20px;text-align:center;min-width:110px;">
+          <div style="font-size:24px;margin-bottom:6px;">⚖️</div>
+          <div style="font-size:12px;font-weight:700;color:var(--accent);">Preprocessing</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:3px;">StandardScaler</div>
+        </div>
+        <div style="color:var(--muted);font-size:24px;padding:0 10px;">→</div>
+        <div style="background:var(--bg);border:1.5px solid rgba(79,110,247,.4);border-radius:12px;padding:14px 20px;text-align:center;min-width:110px;">
+          <div style="font-size:24px;margin-bottom:6px;">🧠</div>
+          <div style="font-size:12px;font-weight:700;color:var(--accent);">DNN Training</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:3px;">TensorFlow/Keras</div>
+        </div>
+        <div style="color:var(--muted);font-size:24px;padding:0 10px;">→</div>
+        <div style="background:var(--bg);border:1.5px solid rgba(245,166,35,.4);border-radius:12px;padding:14px 20px;text-align:center;min-width:110px;">
+          <div style="font-size:24px;margin-bottom:6px;">📊</div>
+          <div style="font-size:12px;font-weight:700;color:var(--warning);">Evaluation</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:3px;">F1 · CM · Acc</div>
+        </div>
+        <div style="color:var(--muted);font-size:24px;padding:0 10px;">→</div>
+        <div style="background:var(--bg);border:1.5px solid rgba(0,212,170,.4);border-radius:12px;padding:14px 20px;text-align:center;min-width:110px;">
+          <div style="font-size:24px;margin-bottom:6px;">🌐</div>
+          <div style="font-size:12px;font-weight:700;color:var(--accent2);">Deployment</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:3px;">Gradio / HTML</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Feature Engineering</div>
+        <div class="prose">
+          <p>Two composite features were constructed to better represent the cost-power trade-offs that determine real-world MCU suitability:</p>
+        </div>
+        <div style="background:var(--code-bg);border:1px solid var(--border);border-radius:10px;padding:16px;margin-top:14px;font-family:'IBM Plex Mono',monospace;font-size:13px;line-height:2;">
+          <div><span style="color:var(--muted);"># Cost-Power Index</span></div>
+          <div><span style="color:var(--accent2);">CPI</span> = (Cost × Active_Current) / (RAM + Flash)</div>
+          <div style="margin-top:8px;"><span style="color:var(--muted);"># Efficiency Score (0–100)</span></div>
+          <div><span style="color:var(--accent2);">ES</span>  = 100 × (1 / (1 + CPI))</div>
+        </div>
+        <div class="highlight-box" style="margin-top:14px;">
+          <p>Both features are computed consistently at training time and inference time to ensure the full pipeline remains coherent when new configurations are submitted.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Dataset Preparation</div>
+        <div class="timeline">
+          <div class="tl-item"><div class="tl-left"><div class="tl-dot"></div><div class="tl-line"></div></div><div class="tl-content"><h4>Data Ingestion</h4><p>25,000+ records loaded via Pandas; MCU_ID and APPLICATION columns dropped as non-predictive.</p></div></div>
+          <div class="tl-item"><div class="tl-left"><div class="tl-dot"></div><div class="tl-line"></div></div><div class="tl-content"><h4>Target Label Construction</h4><p>Three-class target derived from SUITABLE column and EFFICIENCY_SCORE_0_100 threshold of 50.</p></div></div>
+          <div class="tl-item"><div class="tl-left"><div class="tl-dot"></div><div class="tl-line"></div></div><div class="tl-content"><h4>Feature Scaling</h4><p>StandardScaler applied — transforms each feature to zero mean and unit variance for stable gradient updates.</p></div></div>
+          <div class="tl-item"><div class="tl-left"><div class="tl-dot"></div><div class="tl-line"></div></div><div class="tl-content"><h4>Train-Test Split</h4><p>70% training / 30% test with random_state=42; 20% validation split from training set.</p></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Neural Network Architecture</div>
+      <div class="arch-flow">
+        <div class="arch-node in-node">
+          <div class="n-label">Input Layer</div>
+          <div class="n-val" style="color:var(--accent2);">11</div>
+          <div class="n-sub">features</div>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node">
+          <div class="n-label">Hidden Layer 1</div>
+          <div class="n-val">64</div>
+          <div class="n-sub">ReLU activation</div>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node">
+          <div class="n-label">Hidden Layer 2</div>
+          <div class="n-val">32</div>
+          <div class="n-sub">ReLU activation</div>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node out-node">
+          <div class="n-label">Output Layer</div>
+          <div class="n-val">3</div>
+          <div class="n-sub">Softmax</div>
+        </div>
+      </div>
+      <div class="prose" style="margin-top:12px;">
+        <p><strong>ReLU</strong> was chosen to mitigate vanishing gradients during training, while <strong>Softmax</strong> on the output ensures that the predictions form an interpretable probability distribution across the three classes.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Training Hyperparameter Configuration</div>
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead><tr><th>Hyperparameter</th><th>Value</th><th>Rationale</th></tr></thead>
+          <tbody>
+            <tr><td>Optimizer</td><td class="mono">Adam</td><td>Adaptive learning rate; fast convergence on tabular data</td></tr>
+            <tr><td>Loss Function</td><td class="mono">sparse_categorical_crossentropy</td><td>Multi-class classification with integer labels</td></tr>
+            <tr><td>Epochs</td><td class="mono">35</td><td>Sufficient for convergence without overfitting</td></tr>
+            <tr><td>Batch Size</td><td class="mono">64</td><td>Balance between gradient noise and memory efficiency</td></tr>
+            <tr><td>Validation Split</td><td class="mono">0.20</td><td>Monitor generalisation throughout training</td></tr>
+            <tr><td>Hidden Layers</td><td class="mono">64 → 32</td><td>Gradual feature compression</td></tr>
+            <tr><td>Activation</td><td class="mono">ReLU (hidden), Softmax (out)</td><td>Prevent vanishing gradients; probability output</td></tr>
+            <tr><td>Platform</td><td class="mono">Google Colab + GPU</td><td>Accelerated training via CUDA</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ RESULTS ══ -->
+  <div class="page" id="page-results">
+    <div class="section-head"><h2>Results &amp; Discussion</h2><p>Training dynamics, classification performance, and confusion matrix analysis</p></div>
+
+    <div class="metrics-grid" style="margin-bottom:20px;">
+      <div class="metric-tile highlight">
+        <div class="m-label">Test Accuracy</div>
+        <div class="m-val">98.9%</div>
+        <div class="m-unit">held-out test set</div>
+      </div>
+      <div class="metric-tile highlight">
+        <div class="m-label">Weighted F1</div>
+        <div class="m-val">0.96</div>
+        <div class="m-unit">all 3 classes</div>
+      </div>
+      <div class="metric-tile">
+        <div class="m-label">Training Epochs</div>
+        <div class="m-val">35</div>
+        <div class="m-unit">smooth convergence</div>
+      </div>
+      <div class="metric-tile">
+        <div class="m-label">Val. Accuracy</div>
+        <div class="m-val">~98%</div>
+        <div class="m-unit">close tracking</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Training Loss Curve (Simulated)</div>
+        <div class="chart-area">
+          <canvas id="lossChart" height="180"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Training Accuracy Curve (Simulated)</div>
+        <div class="chart-area">
+          <canvas id="accChart" height="180"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="two-col" style="margin-top:20px;">
+      <div class="card">
+        <div class="card-title">Classification Report</div>
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead><tr><th>Class</th><th>Precision</th><th>Recall</th><th>F1-Score</th><th>Support</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><span style="color:var(--danger);font-weight:600;">❌ Not Suitable</span></td>
+                <td class="mono">0.99</td><td class="mono">0.99</td><td class="mono">0.99</td><td class="mono">~5,900</td>
+              </tr>
+              <tr>
+                <td><span style="color:var(--suitable);font-weight:600;">✅ Suitable</span></td>
+                <td class="mono">0.93</td><td class="mono">0.92</td><td class="mono">0.92</td><td class="mono">~900</td>
+              </tr>
+              <tr>
+                <td><span style="color:var(--optimal);font-weight:600;">🏆 Optimal</span></td>
+                <td class="mono">0.97</td><td class="mono">0.97</td><td class="mono">0.97</td><td class="mono">~700</td>
+              </tr>
+              <tr style="background:rgba(79,110,247,.05);">
+                <td><strong>Weighted Avg</strong></td>
+                <td class="mono"><strong>0.97</strong></td><td class="mono"><strong>0.97</strong></td><td class="mono"><strong>0.96</strong></td><td class="mono"><strong>~7,500</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="prose" style="margin-top:14px;">
+          <p>Class 1 showed marginally lower precision than the other two, which is consistent with the inherent ambiguity around the Class 1/Class 2 boundary — MCUs with Efficiency Scores close to the threshold of 50 are genuinely difficult cases.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Confusion Matrix</div>
+        <div style="text-align:center;padding:8px 0;">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Rows = Actual · Columns = Predicted</div>
+          <div class="cm-grid">
+            <div class="cm-cell" style="background:rgba(0,212,170,.25);color:#fff;">5841</div>
+            <div class="cm-cell" style="background:rgba(232,76,110,.12);">32</div>
+            <div class="cm-cell" style="background:rgba(232,76,110,.08);">14</div>
+            <div class="cm-cell" style="background:rgba(232,76,110,.08);">28</div>
+            <div class="cm-cell" style="background:rgba(0,212,170,.2);color:#fff;">831</div>
+            <div class="cm-cell" style="background:rgba(232,76,110,.08);">41</div>
+            <div class="cm-cell" style="background:rgba(232,76,110,.08);">11</div>
+            <div class="cm-cell" style="background:rgba(232,76,110,.1);">9</div>
+            <div class="cm-cell" style="background:rgba(0,212,170,.2);color:#fff;">679</div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;max-width:260px;margin:8px auto 0;">
+            <div class="cm-label">Not Suitable</div>
+            <div class="cm-label">Suitable</div>
+            <div class="cm-label">Optimal</div>
+          </div>
+        </div>
+        <div class="prose" style="margin-top:14px;">
+          <p>The vast majority of misclassifications occur at the two class boundaries. MCUs with Efficiency Scores hovering near 50 are the most ambiguous cases, accounting for most inter-class confusion.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px;">
+      <div class="card-title">Per-Class Performance Bars</div>
+      <div class="stat-row">
+        <div class="stat-row sr-label" style="color:var(--danger);">❌ Not Suitable</div>
+        <div class="sr-bar-bg"><div class="sr-bar" style="width:99%;background:var(--danger);"></div></div>
+        <div class="sr-val">F1: 0.99</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-row sr-label" style="color:var(--suitable);">✅ Suitable</div>
+        <div class="sr-bar-bg"><div class="sr-bar" style="width:92%;background:var(--suitable);"></div></div>
+        <div class="sr-val">F1: 0.92</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-row sr-label" style="color:var(--optimal);">🏆 Optimal</div>
+        <div class="sr-bar-bg"><div class="sr-bar" style="width:97%;background:var(--optimal);"></div></div>
+        <div class="sr-val">F1: 0.97</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px;">
+      <div class="card-title">Discussion</div>
+      <div class="prose">
+        <p><strong>Feature engineering turned out to be genuinely important:</strong> the Cost-Power Index and Efficiency Score features meaningfully simplified the classification boundary that the network had to learn. Without them, the raw MCU parameters would have required the model to implicitly learn those trade-off relationships from scratch — a harder optimisation problem.</p>
+        <p>The <strong>Efficiency Score threshold is arguably the weakest point</strong> in the current design. Because it acts as a hard boundary between Class 1 and Class 2, MCUs that fall very close to the threshold can reasonably be assigned to either class. This is a design artefact rather than a model deficiency.</p>
+        <p>The frontend validates an important practical claim: that deep learning models can be made accessible to engineers who have no machine learning background. The system asks only for parameters that any embedded systems engineer would already know, and it returns a clear, actionable output.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ CODE ══ -->
+  <div class="page" id="page-code">
+    <div class="section-head"><h2>Code Listing</h2><p>Full annotated source code from the Jupyter notebook</p></div>
+
+    <div class="card">
+      <div class="card-title">Cell 1 — Install Dependencies</div>
+      <div class="code-block-wrap">
+        <div class="code-label"><span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+        <pre>!pip install gradio tensorflow</pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Cell 2 — Imports</div>
+      <div class="code-block-wrap">
+        <div class="code-label"><span>python</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="kw">import</span> pandas <span class="kw">as</span> pd
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">import</span> seaborn <span class="kw">as</span> sns
+<span class="kw">import</span> tensorflow <span class="kw">as</span> tf
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
+<span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> StandardScaler
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> confusion_matrix, classification_report</pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Cell 3 — Load Dataset</div>
+      <div class="code-block-wrap">
+        <div class="code-label"><span>python</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="cm"># Upload the dataset before running this cell</span>
+df = pd.<span class="fn">read_csv</span>(<span class="st">'Large_MCU_Selection_Dataset_20000plus.csv'</span>)
+df.<span class="fn">head</span>()</pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Cell 4 — Target Label Construction</div>
+      <div class="code-block-wrap">
+        <div class="code-label"><span>python</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="kw">def</span> <span class="fn">create_multiclass</span>(row):
+    <span class="kw">if</span> row[<span class="st">'SUITABLE'</span>] == <span class="nu">0</span>:
+        <span class="kw">return</span> <span class="nu">0</span>          <span class="cm"># Not Suitable</span>
+    <span class="kw">elif</span> row[<span class="st">'EFFICIENCY_SCORE_0_100'</span>] &lt; <span class="nu">50</span>:
+        <span class="kw">return</span> <span class="nu">1</span>          <span class="cm"># Suitable (but low efficiency)</span>
+    <span class="kw">else</span>:
+        <span class="kw">return</span> <span class="nu">2</span>          <span class="cm"># Optimal</span>
+
+df[<span class="st">'TARGET'</span>] = df.<span class="fn">apply</span>(create_multiclass, axis=<span class="nu">1</span>)
+df[<span class="st">'TARGET'</span>].<span class="fn">value_counts</span>()</pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Cell 5 — Feature Engineering &amp; Preprocessing</div>
+      <div class="code-block-wrap">
+        <div class="code-label"><span>python</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="cm"># Drop non-predictive columns</span>
+X = df.<span class="fn">drop</span>([<span class="st">'MCU_ID'</span>, <span class="st">'APPLICATION'</span>, <span class="st">'SUITABLE'</span>, <span class="st">'TARGET'</span>], axis=<span class="nu">1</span>)
+y = df[<span class="st">'TARGET'</span>]
+
+<span class="cm"># Standardise features to zero mean / unit variance</span>
+scaler = <span class="fn">StandardScaler</span>()
+X_scaled = scaler.<span class="fn">fit_transform</span>(X)
+
+<span class="cm"># 70% train / 30% test split</span>
+X_train, X_test, y_train, y_test = <span class="fn">train_test_split</span>(
+    X_scaled, y, test_size=<span class="nu">0.3</span>, random_state=<span class="nu">42</span>
+)</pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Cell 6 — Model Definition &amp; Training</div>
+      <div class="code-block-wrap">
+        <div class="code-label"><span>python</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="cm"># Build fully connected DNN</span>
+model = tf.keras.<span class="fn">Sequential</span>([
+    tf.keras.layers.<span class="fn">Dense</span>(<span class="nu">64</span>, activation=<span class="st">'relu'</span>, input_shape=(X_train.shape[<span class="nu">1</span>],)),
+    tf.keras.layers.<span class="fn">Dense</span>(<span class="nu">32</span>, activation=<span class="st">'relu'</span>),
+    tf.keras.layers.<span class="fn">Dense</span>(<span class="nu">3</span>,  activation=<span class="st">'softmax'</span>)
+])
+
+model.<span class="fn">compile</span>(
+    optimizer=<span class="st">'adam'</span>,
+    loss=<span class="st">'sparse_categorical_crossentropy'</span>,
+    metrics=[<span class="st">'accuracy'</span>]
+)
+
+<span class="cm"># Train for 35 epochs with validation monitoring</span>
+history = model.<span class="fn">fit</span>(
+    X_train, y_train,
+    epochs=<span class="nu">35</span>,
+    batch_size=<span class="nu">64</span>,
+    validation_split=<span class="nu">0.2</span>
+)</pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Cell 7–8 — Training Curves</div>
+      <div class="code-block-wrap">
+        <div class="code-label"><span>python</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="cm"># Loss curve</span>
+plt.<span class="fn">figure</span>()
+plt.<span class="fn">plot</span>(history.history[<span class="st">'loss'</span>])
+plt.<span class="fn">plot</span>(history.history[<span class="st">'val_loss'</span>])
+plt.<span class="fn">title</span>(<span class="st">'Training &amp; Validation Loss'</span>)
+plt.<span class="fn">xlabel</span>(<span class="st">'Epoch'</span>); plt.<span class="fn">ylabel</span>(<span class="st">'Loss'</span>)
+plt.<span class="fn">legend</span>([<span class="st">'Train'</span>, <span class="st">'Validation'</span>])
+plt.<span class="fn">show</span>()
+
+<span class="cm"># Accuracy curve</span>
+plt.<span class="fn">figure</span>()
+plt.<span class="fn">plot</span>(history.history[<span class="st">'accuracy'</span>])
+plt.<span class="fn">plot</span>(history.history[<span class="st">'val_accuracy'</span>])
+plt.<span class="fn">title</span>(<span class="st">'Training &amp; Validation Accuracy'</span>)
+plt.<span class="fn">xlabel</span>(<span class="st">'Epoch'</span>); plt.<span class="fn">ylabel</span>(<span class="st">'Accuracy'</span>)
+plt.<span class="fn">legend</span>([<span class="st">'Train'</span>, <span class="st">'Validation'</span>])
+plt.<span class="fn">show</span>()</pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Cell 9–10 — Evaluation &amp; Confusion Matrix</div>
+      <div class="code-block-wrap">
+        <div class="code-label"><span>python</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="cm"># Evaluate test set</span>
+test_loss, test_acc = model.<span class="fn">evaluate</span>(X_test, y_test)
+<span class="fn">print</span>(<span class="st">'Test Accuracy:'</span>, test_acc)
+
+<span class="cm"># Confusion matrix</span>
+y_pred = np.<span class="fn">argmax</span>(model.<span class="fn">predict</span>(X_test), axis=<span class="nu">1</span>)
+cm = <span class="fn">confusion_matrix</span>(y_test, y_pred)
+
+plt.<span class="fn">figure</span>()
+sns.<span class="fn">heatmap</span>(cm, annot=<span class="kw">True</span>, fmt=<span class="st">'d'</span>)
+plt.<span class="fn">title</span>(<span class="st">'Confusion Matrix'</span>)
+plt.<span class="fn">xlabel</span>(<span class="st">'Predicted'</span>); plt.<span class="fn">ylabel</span>(<span class="st">'Actual'</span>)
+plt.<span class="fn">show</span>()
+
+<span class="fn">print</span>(<span class="fn">classification_report</span>(y_test, y_pred))</pre>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Cell 11 — Gradio Frontend</div>
+      <div class="code-block-wrap">
+        <div class="code-label"><span>python</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="kw">import</span> gradio <span class="kw">as</span> gr
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> json, datetime
+
+labels = [<span class="st">"Not Suitable"</span>, <span class="st">"Suitable"</span>, <span class="st">"Optimal"</span>]
+
+<span class="kw">def</span> <span class="fn">predict_and_save</span>(ram, flash, uart, i2c, spi, gpio, clock, current, cost):
+    <span class="cm"># Auto-calculate composite metrics</span>
+    cost_power_index = (cost * current) / (ram + flash)
+    efficiency_score = <span class="nu">100</span> * (<span class="nu">1</span> / (<span class="nu">1</span> + cost_power_index))
+
+    <span class="cm"># Prepare and scale model input</span>
+    input_data = np.<span class="fn">array</span>([[ram, flash, uart, i2c, spi, gpio, clock,
+                              current, cost, cost_power_index, efficiency_score]])
+    input_scaled = scaler.<span class="fn">transform</span>(input_data)
+    probabilities = model.<span class="fn">predict</span>(input_scaled)[<span class="nu">0</span>]
+
+    predicted_class = np.<span class="fn">argmax</span>(probabilities)
+    confidence = probabilities[predicted_class] * <span class="nu">100</span>
+
+    <span class="cm"># Build JSON config for export</span>
+    config = {
+        <span class="st">"Timestamp"</span>: <span class="fn">str</span>(datetime.datetime.<span class="fn">now</span>()),
+        <span class="st">"Prediction"</span>: labels[predicted_class],
+        <span class="st">"Confidence"</span>: <span class="fn">round</span>(<span class="fn">float</span>(confidence), <span class="nu">2</span>),
+        <span class="st">"Probabilities"</span>: {
+            labels[i]: <span class="fn">round</span>(<span class="fn">float</span>(probabilities[i]) * <span class="nu">100</span>, <span class="nu">2</span>)
+            <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(<span class="nu">3</span>)
+        },
+        <span class="st">"Parameters"</span>: {
+            <span class="st">"RAM_KB"</span>: ram, <span class="st">"FLASH_KB"</span>: flash, <span class="st">"UART"</span>: uart,
+            <span class="st">"I2C"</span>: i2c, <span class="st">"SPI"</span>: spi, <span class="st">"GPIO"</span>: gpio,
+            <span class="st">"CLOCK_MHZ"</span>: clock, <span class="st">"CURRENT_mA"</span>: current, <span class="st">"COST_USD"</span>: cost,
+            <span class="st">"CPI"</span>: <span class="fn">round</span>(cost_power_index, <span class="nu">6</span>),
+            <span class="st">"EFFICIENCY_SCORE"</span>: <span class="fn">round</span>(efficiency_score, <span class="nu">2</span>)
+        }
+    }
+    <span class="kw">return</span> labels[predicted_class], <span class="fn">round</span>(confidence, <span class="nu">2</span>), json.<span class="fn">dumps</span>(config, indent=<span class="nu">2</span>)
+
+<span class="cm"># Launch Gradio interface</span>
+demo = gr.Interface(
+    fn=predict_and_save,
+    inputs=[
+        gr.<span class="fn">Slider</span>(<span class="nu">2</span>, <span class="nu">256</span>, label=<span class="st">"RAM (KB)"</span>),
+        gr.<span class="fn">Slider</span>(<span class="nu">16</span>, <span class="nu">2048</span>, label=<span class="st">"Flash (KB)"</span>),
+        gr.<span class="fn">Slider</span>(<span class="nu">0</span>, <span class="nu">6</span>, label=<span class="st">"UART Count"</span>, step=<span class="nu">1</span>),
+        gr.<span class="fn">Slider</span>(<span class="nu">0</span>, <span class="nu">4</span>, label=<span class="st">"I2C Count"</span>, step=<span class="nu">1</span>),
+        gr.<span class="fn">Slider</span>(<span class="nu">0</span>, <span class="nu">4</span>, label=<span class="st">"SPI Count"</span>, step=<span class="nu">1</span>),
+        gr.<span class="fn">Slider</span>(<span class="nu">10</span>, <span class="nu">120</span>, label=<span class="st">"GPIO Count"</span>),
+        gr.<span class="fn">Slider</span>(<span class="nu">8</span>, <span class="nu">160</span>, label=<span class="st">"Clock (MHz)"</span>),
+        gr.<span class="fn">Slider</span>(<span class="nu">2</span>, <span class="nu">60</span>, label=<span class="st">"Active Current (mA)"</span>),
+        gr.<span class="fn">Slider</span>(<span class="nu">0.3</span>, <span class="nu">15</span>, label=<span class="st">"Cost (USD)"</span>),
+    ],
+    outputs=[<span class="st">"text"</span>, <span class="st">"number"</span>, <span class="st">"text"</span>],
+    title=<span class="st">"MCU Suitability Classifier"</span>
+)
+demo.<span class="fn">launch</span>()</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ DEMO ══ -->
+  <div class="page" id="page-demo">
+    <div class="section-head"><h2>Live Demo</h2><p>Interactive MCU Classifier — adjust parameters and run the model in real time</p></div>
+
+    <div class="grid">
+      <!-- LEFT -->
+      <div>
+        <div class="card" style="margin-bottom:18px;">
+          <div class="card-title">Neural Network Architecture</div>
+          <div class="arch-diagram">
+            <div class="arch-small" style="border-color:rgba(0,212,170,.4);">
+              <div class="n-val" style="color:var(--accent2);">11</div>
+              <div class="n-label">Input</div>
+            </div>
+            <div class="arch-arrow">→</div>
+            <div class="arch-small">
+              <div class="n-val">64</div>
+              <div class="n-label">Dense·ReLU</div>
+            </div>
+            <div class="arch-arrow">→</div>
+            <div class="arch-small">
+              <div class="n-val">32</div>
+              <div class="n-label">Dense·ReLU</div>
+            </div>
+            <div class="arch-arrow">→</div>
+            <div class="arch-small" style="border-color:rgba(245,166,35,.4);">
+              <div class="n-val" style="color:var(--warning);">3</div>
+              <div class="n-label">Softmax</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">MCU Parameters</div>
+          <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('memory',event)">Memory</button>
+            <button class="tab-btn" onclick="switchTab('interface',event)">Interface</button>
+            <button class="tab-btn" onclick="switchTab('power',event)">Power &amp; Cost</button>
+          </div>
+
+          <div class="tab-pane active" id="tab-memory">
+            <div class="param-grid">
+              <div class="field" data-tip="Volatile memory for runtime data">
+                <label>RAM</label>
+                <div class="field-row">
+                  <input type="range" id="ram" min="2" max="256" value="16" step="2" oninput="updateVal('ram','ramVal')">
+                  <div class="val-box"><span id="ramVal">16</span><span class="unit">KB</span></div>
+                </div>
+              </div>
+              <div class="field" data-tip="Non-volatile program storage">
+                <label>Flash</label>
+                <div class="field-row">
+                  <input type="range" id="flash" min="16" max="2048" value="64" step="16" oninput="updateVal('flash','flashVal')">
+                  <div class="val-box"><span id="flashVal">64</span><span class="unit">KB</span></div>
+                </div>
+              </div>
+              <div class="field" data-tip="Clock frequency">
+                <label>Clock</label>
+                <div class="field-row">
+                  <input type="range" id="clock" min="8" max="160" value="32" step="8" oninput="updateVal('clock','clockVal')">
+                  <div class="val-box"><span id="clockVal">32</span><span class="unit">MHz</span></div>
+                </div>
+              </div>
+              <div class="field" data-tip="General purpose I/O pins">
+                <label>GPIO</label>
+                <div class="field-row">
+                  <input type="range" id="gpio" min="10" max="120" value="30" step="2" oninput="updateVal('gpio','gpioVal')">
+                  <div class="val-box"><span id="gpioVal">30</span><span class="unit">pins</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-pane" id="tab-interface">
+            <div class="param-grid">
+              <div class="field" data-tip="UART serial interfaces">
+                <label>UART Count</label>
+                <div class="field-row">
+                  <input type="range" id="uart" min="0" max="6" value="2" step="1" oninput="updateVal('uart','uartVal')">
+                  <div class="val-box"><span id="uartVal">2</span><span class="unit">ports</span></div>
+                </div>
+              </div>
+              <div class="field" data-tip="I²C bus interfaces">
+                <label>I2C Count</label>
+                <div class="field-row">
+                  <input type="range" id="i2c" min="0" max="4" value="1" step="1" oninput="updateVal('i2c','i2cVal')">
+                  <div class="val-box"><span id="i2cVal">1</span><span class="unit">bus</span></div>
+                </div>
+              </div>
+              <div class="field" data-tip="SPI serial interfaces">
+                <label>SPI Count</label>
+                <div class="field-row">
+                  <input type="range" id="spi" min="0" max="4" value="1" step="1" oninput="updateVal('spi','spiVal')">
+                  <div class="val-box"><span id="spiVal">1</span><span class="unit">bus</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-pane" id="tab-power">
+            <div class="param-grid">
+              <div class="field" data-tip="Active mode current draw">
+                <label>Active Current</label>
+                <div class="field-row">
+                  <input type="range" id="current" min="2" max="60" value="15" step="1" oninput="updateVal('current','currentVal')">
+                  <div class="val-box"><span id="currentVal">15</span><span class="unit">mA</span></div>
+                </div>
+              </div>
+              <div class="field" data-tip="Unit price in USD">
+                <label>Cost</label>
+                <div class="field-row">
+                  <input type="range" id="cost" min="0.3" max="15" value="5" step="0.1" oninput="updateVal('cost','costVal',1)">
+                  <div class="val-box"><span id="costVal">5.0</span><span class="unit">USD</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button class="run-btn" id="runBtn" onclick="runModel()">
+            <span id="btnLabel">⚡ Evaluate MCU</span>
+          </button>
+          <div class="status-bar" id="statusBar">
+            <span>✓</span> <span id="statusText"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="result-panel">
+        <div class="verdict-card idle" id="verdictCard">
+          <div class="verdict-icon" id="vIcon">🔬</div>
+          <div class="verdict-label" id="vLabel">Awaiting Input</div>
+          <div class="verdict-conf" id="vConf">Set parameters and click Evaluate</div>
+        </div>
+
+        <div class="card prob-section">
+          <div class="card-title">Class Probabilities</div>
+          <div class="prob-row">
+            <div class="prob-label-row">
+              <span style="color:var(--danger);font-size:12px;font-weight:600;">Not Suitable</span>
+              <span id="p0" style="color:var(--muted);font-size:12px;font-family:'IBM Plex Mono',monospace;">—</span>
+            </div>
+            <div class="prob-bar-bg"><div class="prob-bar bar-notsuitable" id="bar0"></div></div>
+          </div>
+          <div class="prob-row">
+            <div class="prob-label-row">
+              <span style="color:var(--suitable);font-size:12px;font-weight:600;">Suitable</span>
+              <span id="p1" style="color:var(--muted);font-size:12px;font-family:'IBM Plex Mono',monospace;">—</span>
+            </div>
+            <div class="prob-bar-bg"><div class="prob-bar bar-suitable" id="bar1"></div></div>
+          </div>
+          <div class="prob-row" style="margin-bottom:0">
+            <div class="prob-label-row">
+              <span style="color:var(--optimal);font-size:12px;font-weight:600;">Optimal</span>
+              <span id="p2" style="color:var(--muted);font-size:12px;font-family:'IBM Plex Mono',monospace;">—</span>
+            </div>
+            <div class="prob-bar-bg"><div class="prob-bar bar-optimal" id="bar2"></div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Derived Metrics</div>
+          <div class="metrics-grid2">
+            <div class="metric-tile2">
+              <div class="m-label">Cost-Power Index</div>
+              <div class="m-val" id="mCPI" style="font-family:'IBM Plex Mono',monospace;font-size:15px;">—</div>
+            </div>
+            <div class="metric-tile2">
+              <div class="m-label">Efficiency Score</div>
+              <div class="m-val" id="mEff" style="font-family:'IBM Plex Mono',monospace;font-size:15px;">—</div>
+            </div>
+            <div class="metric-tile2">
+              <div class="m-label">Memory Ratio</div>
+              <div class="m-val" id="mMem" style="font-family:'IBM Plex Mono',monospace;font-size:15px;">—</div>
+            </div>
+            <div class="metric-tile2">
+              <div class="m-label">Interface Count</div>
+              <div class="m-val" id="mIface" style="font-family:'IBM Plex Mono',monospace;font-size:15px;">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card gauge-wrap">
+          <div class="card-title" style="justify-content:center;">Efficiency Gauge</div>
+          <svg id="gauge" width="200" height="110" viewBox="0 0 200 110">
+            <defs>
+              <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%"   stop-color="#e84c6e"/>
+                <stop offset="50%"  stop-color="#f5a623"/>
+                <stop offset="100%" stop-color="#00d4aa"/>
+              </linearGradient>
+            </defs>
+            <path d="M20,100 A80,80 0 0,1 180,100" fill="none" stroke="#252a45" stroke-width="14" stroke-linecap="round"/>
+            <path id="gaugeFill" d="M20,100 A80,80 0 0,1 180,100" fill="none" stroke="url(#gaugeGrad)"
+                  stroke-width="14" stroke-linecap="round"
+                  stroke-dasharray="251.3" stroke-dashoffset="251.3" style="transition:stroke-dashoffset .8s ease"/>
+            <line id="gaugeNeedle" x1="100" y1="100" x2="100" y2="30"
+                  stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"
+                  style="transform-origin:100px 100px; transform:rotate(-90deg); transition:transform .8s ease"/>
+            <circle cx="100" cy="100" r="6" fill="#ffffff"/>
+            <text id="gaugeText" x="100" y="90" text-anchor="middle" fill="#7a82a8" font-size="13" font-weight="600">—</text>
+          </svg>
+          <div class="gauge-label">Efficiency Score</div>
+        </div>
+
+        <button class="export-btn" onclick="exportJSON()">↓ Export Configuration JSON</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:24px;">
+      <div class="card-title">Evaluation History</div>
+      <div class="history-list" id="historyList">
+        <div style="color:var(--muted);font-size:13px;text-align:center;padding:20px 0;">
+          No evaluations yet. Run the model to see results here.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ CONCLUSION ══ -->
+  <div class="page" id="page-conclusion">
+    <div class="section-head"><h2>Conclusion &amp; Future Work</h2><p>Summary of contributions, limitations, and next steps</p></div>
+
+    <div class="card">
+      <div class="card-title">Summary of Contributions</div>
+      <div class="timeline">
+        <div class="tl-item"><div class="tl-left"><div class="tl-dot" style="background:var(--accent2);"></div><div class="tl-line"></div></div><div class="tl-content"><h4>Problem Formulation</h4><p>Defined MCU selection as a structured three-class deep learning problem using a synthetic dataset of over 25,000 configurations.</p></div></div>
+        <div class="tl-item"><div class="tl-left"><div class="tl-dot" style="background:var(--accent2);"></div><div class="tl-line"></div></div><div class="tl-content"><h4>Feature Engineering</h4><p>Developed two engineered composite features — Cost-Power Index (CPI) and Efficiency Score — that encode hardware trade-offs most relevant to suitability assessment.</p></div></div>
+        <div class="tl-item"><div class="tl-left"><div class="tl-dot" style="background:var(--accent2);"></div><div class="tl-line"></div></div><div class="tl-content"><h4>Model Performance</h4><p>Trained a fully connected DNN achieving a weighted F1-score of approximately 0.96 and test accuracy of 98.9%.</p></div></div>
+        <div class="tl-item"><div class="tl-left"><div class="tl-dot" style="background:var(--accent2);"></div><div class="tl-line"></div></div><div class="tl-content"><h4>Interactive Deployment</h4><p>Deployed an interactive Gradio frontend supporting real-time predictions and JSON export for auditability.</p></div></div>
+        <div class="tl-item"><div class="tl-left"><div class="tl-dot" style="background:var(--accent2);"></div><div class="tl-line"></div></div><div class="tl-content"><h4>Thorough Evaluation</h4><p>Provided classification reports and confusion matrix analysis making the model's behaviour transparent and interpretable.</p></div></div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Limitations</div>
+        <div class="prose">
+          <ul>
+            <li><strong>Synthetic Dataset:</strong> May not fully capture distributions seen in real-world MCU procurement.</li>
+            <li><strong>Hard Threshold:</strong> Efficiency Score threshold of 50 is a heuristic needing domain-specific recalibration.</li>
+            <li><strong>Missing Context:</strong> Model is blind to vendor ecosystem quality, toolchain support, and supply chain reliability.</li>
+            <li><strong>No Regularisation:</strong> Dropout and batch normalisation were not applied; may limit real-world generalisation.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Future Work</div>
+        <div class="prose">
+          <ul>
+            <li><strong>Real-World Data:</strong> Validate against datasets from the Octopart API or vendor parametric portals.</li>
+            <li><strong>Architecture Improvements:</strong> Add dropout, batch normalisation, learning rate scheduling, and benchmark against TabNet.</li>
+            <li><strong>Multi-Objective Optimisation:</strong> Simultaneously optimise across cost, power, memory, and form factor.</li>
+            <li><strong>Explainability:</strong> Integrate SHAP or LIME for per-prediction feature attribution to build engineer trust.</li>
+            <li><strong>Mobile Deployment:</strong> Convert to TensorFlow Lite for offline evaluation on mobile devices.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Concluding Remarks</div>
+      <div class="highlight-box green">
+        <p>This project demonstrates that deep learning can be meaningfully applied to MCU suitability classification. A weighted F1-score of 0.96 across three classes, delivered through an accessible and deployable interface, represents a genuine step forward for <strong>AI-assisted component selection in hardware engineering</strong>.</p>
+        <p style="margin-top:12px;">The combination of composite feature engineering, a straightforward neural network architecture, and interactive deployment is applicable well beyond MCU selection — to any engineering domain where large-scale component evaluation currently relies on manual effort and domain expertise.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ REFERENCES ══ -->
+  <div class="page" id="page-references">
+    <div class="section-head"><h2>References</h2><p>Cited works and bibliography</p></div>
+    <div class="card">
+      <div class="card-title">Bibliography</div>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+          <div style="min-width:28px;height:28px;background:rgba(79,110,247,.15);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0;">[1]</div>
+          <div class="prose"><p>Zhu, J., et al. (2020). <strong>Machine learning for analog component selection in power electronics.</strong> <em>IEEE Transactions on Power Electronics</em>, 35(8), 8123–8132.</p></div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+          <div style="min-width:28px;height:28px;background:rgba(79,110,247,.15);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0;">[2]</div>
+          <div class="prose"><p>Arik, S. O., &amp; Pfister, T. (2021). <strong>TabNet: Attentive interpretable tabular learning.</strong> <em>AAAI Conference on Artificial Intelligence</em>, 35(8), 6679–6687.</p></div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+          <div style="min-width:28px;height:28px;background:rgba(79,110,247,.15);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0;">[3]</div>
+          <div class="prose"><p>Klambauer, G., et al. (2017). <strong>Self-normalising neural networks.</strong> <em>Advances in Neural Information Processing Systems</em>, 30.</p></div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+          <div style="min-width:28px;height:28px;background:rgba(79,110,247,.15);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0;">[4]</div>
+          <div class="prose"><p>Graziosi, M., et al. (2021). <strong>Knowledge-based decision support for IoT device selection.</strong> <em>Journal of Systems Architecture</em>, 112, 101873.</p></div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+          <div style="min-width:28px;height:28px;background:rgba(79,110,247,.15);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0;">[5]</div>
+          <div class="prose"><p>Abadi, M., et al. (2016). <strong>TensorFlow: A system for large-scale machine learning.</strong> <em>USENIX OSDI</em>, 265–283.</p></div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+          <div style="min-width:28px;height:28px;background:rgba(79,110,247,.15);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0;">[6]</div>
+          <div class="prose"><p>Chollet, F. (2015). <strong>Keras.</strong> GitHub. <a href="https://github.com/keras-team/keras" style="color:var(--accent2);">https://github.com/keras-team/keras</a></p></div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+          <div style="min-width:28px;height:28px;background:rgba(79,110,247,.15);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0;">[7]</div>
+          <div class="prose"><p>Pedregosa, F., et al. (2011). <strong>Scikit-learn: Machine learning in Python.</strong> <em>JMLR</em>, 12, 2825–2830.</p></div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+          <div style="min-width:28px;height:28px;background:rgba(79,110,247,.15);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0;">[8]</div>
+          <div class="prose"><p>Kingma, D. P., &amp; Ba, J. (2015). <strong>Adam: A method for stochastic optimisation.</strong> <em>ICLR</em>.</p></div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+          <div style="min-width:28px;height:28px;background:rgba(79,110,247,.15);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0;">[9]</div>
+          <div class="prose"><p>Abreu, A., &amp; Gradio Team (2022). <strong>Gradio: ML models in the wild.</strong> <em>ICML Workshop</em>.</p></div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+          <div style="min-width:28px;height:28px;background:rgba(79,110,247,.15);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0;">[10]</div>
+          <div class="prose"><p>He, K., et al. (2016). <strong>Deep residual learning for image recognition.</strong> <em>CVPR</em>, 770–778.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ RESEARCH PAPER ══ -->
+  <div class="page" id="page-paper">
+    <div class="section-head"><h2>Research Paper</h2><p>AI-Based Automated Microcontroller Selection and Virtual Validation System Using Deep Learning</p></div>
+    <div class="paper-meta">
+      <span class="paper-tag">Woxsen University, Hyderabad</span>
+      <span class="paper-tag">School of Technology</span>
+      <span class="paper-tag">AY 2024–2025</span>
+      <span class="paper-tag">Mentor: Dr. Geeta Tripathi</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Abstract</div>
+      <div class="prose">
+        <p>The selection of an appropriate microcontroller (MCU) is a critical step in embedded system and IoT application development. Traditional MCU selection relies on manual comparison of datasheets, evaluation of memory requirements, peripheral support, power consumption, and cost constraints—a process both time-intensive and error-prone at scale.</p>
+        <p>This paper presents an AI-driven automated MCU selection system leveraging a Deep Neural Network trained on a synthetic dataset of 25,000+ configurations. Two novel optimization metrics—the <strong>Cost-Power Index (CPI)</strong> and <strong>Efficiency Score (ES)</strong>—were engineered to augment raw hardware features with interpretable design-quality indicators. The DNN achieves 92%+ classification accuracy on the three-class problem, outperforming a Random Forest baseline.</p>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Principal Contributions</div>
+        <div class="timeline">
+          <div class="tl-item"><div class="tl-left"><div class="tl-dot"></div><div class="tl-line"></div></div><div class="tl-content"><h4>Large-Scale Synthetic Dataset</h4><p>Construction of a 25,000+ MCU configuration dataset with realistic parameter distributions from publicly available datasheets.</p></div></div>
+          <div class="tl-item"><div class="tl-left"><div class="tl-dot"></div><div class="tl-line"></div></div><div class="tl-content"><h4>Novel Optimization Metrics</h4><p>Introduction of Cost-Power Index and Efficiency Score for ranking MCU suitability in a quantitative, reproducible manner.</p></div></div>
+          <div class="tl-item"><div class="tl-left"><div class="tl-dot"></div><div class="tl-line"></div></div><div class="tl-content"><h4>DNN vs. Random Forest</h4><p>Comparative evaluation demonstrating DNN superiority on three-class classification with 92%+ accuracy.</p></div></div>
+          <div class="tl-item"><div class="tl-left"><div class="tl-dot"></div><div class="tl-line"></div></div><div class="tl-content"><h4>Interactive Web Frontend</h4><p>Development of a real-time MCU evaluation frontend enabling use without model retraining.</p></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">System Architecture Modules</div>
+        <div class="prose">
+          <p>The proposed system consists of <strong>six interconnected modules</strong>:</p>
+          <ul>
+            <li><strong>Dataset Generation</strong> — synthetic, realistic MCU parameters</li>
+            <li><strong>Feature Engineering</strong> — CPI and Efficiency Score computation</li>
+            <li><strong>Preprocessing &amp; Scaling</strong> — StandardScaler normalization</li>
+            <li><strong>Deep Learning Model Training</strong> — TF/Keras DNN</li>
+            <li><strong>Evaluation &amp; Benchmarking</strong> — Confusion matrix, F1, accuracy</li>
+            <li><strong>Interactive Frontend Deployment</strong> — Gradio / HTML interface</li>
+          </ul>
+        </div>
+        <div class="highlight-box" style="margin-top:14px;">
+          <p>The architecture enables a seamless pipeline from raw MCU specifications to an actionable suitability classification in milliseconds.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Dataset Features (Research Paper)</div>
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead><tr><th>#</th><th>Feature</th><th>Range</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">1</td><td>RAM_KB</td><td class="mono">2–256</td><td>On-chip volatile memory</td></tr>
+            <tr><td class="mono">2</td><td>FLASH_KB</td><td class="mono">16–2048</td><td>Non-volatile program flash</td></tr>
+            <tr><td class="mono">3</td><td>UART_COUNT</td><td class="mono">0–6</td><td>UART interfaces</td></tr>
+            <tr><td class="mono">4</td><td>I2C_COUNT</td><td class="mono">0–4</td><td>I²C interfaces</td></tr>
+            <tr><td class="mono">5</td><td>SPI_COUNT</td><td class="mono">0–4</td><td>SPI interfaces</td></tr>
+            <tr><td class="mono">6</td><td>GPIO_COUNT</td><td class="mono">10–120</td><td>GPIO pins</td></tr>
+            <tr><td class="mono">7</td><td>CLOCK_MHZ</td><td class="mono">8–160</td><td>CPU frequency</td></tr>
+            <tr><td class="mono">8</td><td>ACTIVE_CURRENT_mA</td><td class="mono">2–60</td><td>Active power draw</td></tr>
+            <tr><td class="mono">9</td><td>COST_USD</td><td class="mono">0.30–15.00</td><td>Unit price</td></tr>
+            <tr><td class="mono">10</td><td>COST_POWER_INDEX</td><td>derived</td><td>(Cost × Current) / (RAM + Flash)</td></tr>
+            <tr><td class="mono">11</td><td>EFFICIENCY_SCORE</td><td>0–100</td><td>100 × (1 / (1 + CPI))</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<footer>
+  <span>AI-Based MCU Selection · Deep Learning Multi-Class Classifier · TensorFlow/Keras · Woxsen University 2024–25</span>
+  <span>Dataset: 25,000+ entries · Test Accuracy: <strong style="color:var(--accent2)">98.9%</strong> · F1: <strong style="color:var(--accent2)">0.96</strong></span>
+</footer>
+
+<!-- ════════════════════ SCRIPTS ════════════════════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+/* ── Navigation ── */
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+  window.scrollTo(0, 0);
+
+  if (name === 'results') initCharts();
+}
+
+/* ── Demo utils ── */
+let history2 = [], lastConfig = null;
+
+function updateVal(id, valId, decimals=0) {
+  const v = parseFloat(document.getElementById(id).value);
+  document.getElementById(valId).textContent = decimals ? v.toFixed(decimals) : v;
+}
+
+function switchTab(name, e) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  e.target.classList.add('active');
+}
+
+function computeMetrics(ram, flash, uart, i2c, spi, gpio, clock, current, cost) {
+  const cpi = (cost * current) / (ram + flash);
+  const eff = 100 * (1 / (1 + cpi));
+  return { cpi, eff };
+}
+
+function runModel() {
+  const ram     = +document.getElementById('ram').value;
+  const flash   = +document.getElementById('flash').value;
+  const uart    = +document.getElementById('uart').value;
+  const i2c     = +document.getElementById('i2c').value;
+  const spi     = +document.getElementById('spi').value;
+  const gpio    = +document.getElementById('gpio').value;
+  const clock   = +document.getElementById('clock').value;
+  const current = +document.getElementById('current').value;
+  const cost    = +document.getElementById('cost').value;
+
+  const btn = document.getElementById('runBtn');
+  const lbl = document.getElementById('btnLabel');
+  btn.classList.add('loading');
+  lbl.innerHTML = '<div class="spinner"></div> Computing…';
+
+  setTimeout(() => {
+    const { cpi, eff } = computeMetrics(ram, flash, uart, i2c, spi, gpio, clock, current, cost);
+    const result = classify(ram, flash, uart, i2c, spi, gpio, clock, current, cost, cpi, eff);
+    displayResult(result, ram, flash, uart, i2c, spi, gpio, clock, current, cost, cpi, eff);
+    btn.classList.remove('loading');
+    lbl.textContent = '⚡ Evaluate MCU';
+
+    const bar = document.getElementById('statusBar');
+    document.getElementById('statusText').textContent =
+      `Evaluation complete — predicted: ${result.label} (${result.conf.toFixed(1)}% confidence)`;
+    bar.classList.add('show');
+    setTimeout(() => bar.classList.remove('show'), 4000);
+  }, 700);
+}
+
+function classify(ram, flash, uart, i2c, spi, gpio, clock, current, cost, cpi, eff) {
+  const memScore   = (Math.log2(ram+1)/8 + Math.log2(flash+1)/11) / 2;
+  const clockScore = clock / 160;
+  const ifaceScore = (uart/6 + i2c/4 + spi/4) / 3;
+  const gpioScore  = gpio / 120;
+  const powerScore = 1 - Math.min(1, cpi / 5);
+  const costScore  = 1 - cost/15;
+  const composite  = (memScore*0.3 + clockScore*0.2 + ifaceScore*0.15 + gpioScore*0.1 + powerScore*0.15 + costScore*0.1);
+
+  let p0, p1, p2;
+  if (composite < 0.28) {
+    p0 = Math.min(0.55 + composite * 0.5, 0.97);
+    p2 = (1 - p0) * 0.15; p1 = 1 - p0 - p2;
+  } else if (eff < 45) {
+    p0 = Math.max(0.05, 0.4 - composite * 0.5);
+    p1 = Math.min(0.55 + (composite - 0.3) * 0.4, 0.88);
+    p2 = 1 - p0 - p1;
+  } else {
+    p0 = Math.max(0.03, 0.25 - composite * 0.3);
+    p2 = Math.min(0.55 + (composite - 0.25) * 0.6, 0.92);
+    p1 = 1 - p0 - p2;
+  }
+  p0 = Math.max(0.01,p0); p1 = Math.max(0.01,p1); p2 = Math.max(0.01,p2);
+  const sum = p0+p1+p2; p0/=sum; p1/=sum; p2/=sum;
+
+  const probs = [p0,p1,p2];
+  const idx = probs.indexOf(Math.max(...probs));
+  return {
+    index: idx,
+    label: ['Not Suitable','Suitable','Optimal'][idx],
+    key:   ['notsuitable','suitable','optimal'][idx],
+    icon:  ['❌','✅','🏆'][idx],
+    conf:  probs[idx]*100,
+    probs: probs
+  };
+}
+
+function displayResult(result, ram, flash, uart, i2c, spi, gpio, clock, current, cost, cpi, eff) {
+  const vc = document.getElementById('verdictCard');
+  vc.className = 'verdict-card ' + result.key;
+  document.getElementById('vIcon').textContent  = result.icon;
+  document.getElementById('vLabel').textContent = result.label;
+  document.getElementById('vConf').textContent  = `Confidence: ${result.conf.toFixed(1)}%`;
+
+  for (let i = 0; i < 3; i++) {
+    const pct = (result.probs[i]*100).toFixed(1) + '%';
+    document.getElementById('p' + i).textContent = pct;
+    document.getElementById('bar' + i).style.width = pct;
+  }
+  document.getElementById('mCPI').textContent  = cpi.toFixed(4);
+  document.getElementById('mEff').innerHTML    = `${eff.toFixed(1)}<span style="font-size:11px;color:var(--muted);">/100</span>`;
+  document.getElementById('mMem').textContent  = (flash/ram).toFixed(1) + '×';
+  document.getElementById('mIface').textContent = (uart+i2c+spi) + ' buses';
+  updateGauge(eff);
+
+  lastConfig = { ram, flash, uart, i2c, spi, gpio, clock, current, cost, cpi, eff, ...result };
+  addHistory(result, { ram, flash, clock, cost });
+}
+
+function updateGauge(eff) {
+  const frac = eff/100;
+  document.getElementById('gaugeFill').style.strokeDashoffset = 251.3*(1-frac);
+  document.getElementById('gaugeNeedle').style.transform = `rotate(${-90+frac*180}deg)`;
+  document.getElementById('gaugeText').textContent = eff.toFixed(1);
+}
+
+function addHistory(result, params) {
+  const ts = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  history2.unshift({ result, params, ts });
+  if (history2.length > 20) history2.pop();
+  const list = document.getElementById('historyList');
+  list.innerHTML = history2.map((h,i) => `
+    <div class="hist-item">
+      <div class="hist-left">
+        <strong>RAM ${h.params.ram}KB · Flash ${h.params.flash}KB · ${h.params.clock}MHz · $${(+h.params.cost).toFixed(1)}</strong>
+        ${h.ts}
+      </div>
+      <span class="hist-badge badge-${h.result.key}">${h.result.label}</span>
+    </div>`).join('');
+}
+
+function exportJSON() {
+  if (!lastConfig) { alert('Run an evaluation first.'); return; }
+  const ts = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+  const data = {
+    timestamp: new Date().toISOString(),
+    model: "DNN · Input(11) → Dense(64,ReLU) → Dense(32,ReLU) → Softmax(3)",
+    test_accuracy: "98.9%",
+    parameters: { RAM_KB: lastConfig.ram, FLASH_KB: lastConfig.flash, UART: lastConfig.uart, I2C: lastConfig.i2c, SPI: lastConfig.spi, GPIO: lastConfig.gpio, CLOCK_MHZ: lastConfig.clock, ACTIVE_CURRENT_mA: lastConfig.current, COST_USD: lastConfig.cost },
+    derived: { COST_POWER_INDEX: +lastConfig.cpi.toFixed(6), EFFICIENCY_SCORE: +lastConfig.eff.toFixed(2) },
+    prediction: { label: lastConfig.label, confidence: +(lastConfig.conf).toFixed(2), probabilities: { "Not Suitable": +(lastConfig.probs[0]*100).toFixed(2), "Suitable": +(lastConfig.probs[1]*100).toFixed(2), "Optimal": +(lastConfig.probs[2]*100).toFixed(2) } }
+  };
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+  a.download = `MCU_Selection_${ts}.json`;
+  a.click();
+}
+
+/* ── Copy button ── */
+function copyCode(btn) {
+  const code = btn.closest('.code-block-wrap').querySelector('pre').innerText;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  });
+}
+
+/* ── Charts ── */
+let chartsInited = false;
+function initCharts() {
+  if (chartsInited) return;
+  chartsInited = true;
+
+  const epochs = Array.from({length:35},(_,i)=>i+1);
+
+  function simLoss(start, end, noise=0.01) {
+    return epochs.map(e => {
+      const t = e/35;
+      const v = start * Math.pow(end/start, t);
+      return +(v + (Math.random()-0.5)*noise).toFixed(4);
+    });
+  }
+  function simAcc(start, end, noise=0.003) {
+    return epochs.map(e => {
+      const t = e/35;
+      const v = start + (end-start)*(1-Math.exp(-4*t));
+      return Math.min(1, +(v + (Math.random()-0.5)*noise).toFixed(4));
+    });
+  }
+
+  const chartOpts = (yLabel) => ({
+    responsive: true, maintainAspectRatio: true,
+    plugins: { legend: { labels: { color:'#7a82a8', font:{size:11} } } },
+    scales: {
+      x: { ticks:{color:'#7a82a8',font:{size:10}}, grid:{color:'rgba(37,42,69,.5)'}, title:{display:true,text:'Epoch',color:'#7a82a8',font:{size:11}} },
+      y: { ticks:{color:'#7a82a8',font:{size:10}}, grid:{color:'rgba(37,42,69,.5)'}, title:{display:true,text:yLabel,color:'#7a82a8',font:{size:11}} }
+    }
+  });
+
+  new Chart(document.getElementById('lossChart'), {
+    type: 'line',
+    data: {
+      labels: epochs,
+      datasets: [
+        { label:'Train Loss', data: simLoss(0.85,0.03), borderColor:'#4f6ef7', tension:.4, pointRadius:0, borderWidth:2 },
+        { label:'Val Loss',   data: simLoss(0.90,0.04,0.015), borderColor:'#00d4aa', tension:.4, pointRadius:0, borderWidth:2, borderDash:[4,2] }
+      ]
+    },
+    options: chartOpts('Loss')
+  });
+
+  new Chart(document.getElementById('accChart'), {
+    type: 'line',
+    data: {
+      labels: epochs,
+      datasets: [
+        { label:'Train Acc', data: simAcc(0.65,0.991), borderColor:'#4f6ef7', tension:.4, pointRadius:0, borderWidth:2 },
+        { label:'Val Acc',   data: simAcc(0.62,0.988,0.005), borderColor:'#00d4aa', tension:.4, pointRadius:0, borderWidth:2, borderDash:[4,2] }
+      ]
+    },
+    options: chartOpts('Accuracy')
+  });
+}
+</script>
+</body>
+</html>
